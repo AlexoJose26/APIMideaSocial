@@ -1,12 +1,12 @@
-import { describe,expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
+import { criarPost, listarFeed } from "../services/feed";
 import { criarUsuario } from "../services/usuarios";
-import { criarFeed, listarFeed } from "../services/feed";
 
 describe("Feed", () => {
-  test("cria feed", () => {
-    const u = criarUsuario("A", "1");
+  test("cria feed", async () => {
+    const u = await criarUsuario("A", "1");
 
-    criarFeed(u.id, "LOGIN");
+    await criarPost(u.id, "LOGIN");
 
     expect(listarFeed().length).toBe(1);
   });
