@@ -8,7 +8,6 @@ import {
   buscarUsuario,
 } from "./services/usuarios";
 
-
 import {
   criarPost,
   listarFeed,
@@ -21,75 +20,96 @@ serve({
     const url = new URL(req.url);
     const method = req.method;
 
+    try {
+      /* ================= USUÁRIOS ================= */
 
-    if (url.pathname === "/usuarios" && method === "GET") {
-      return Response.json(listarUsuarios());
-    }
+      // GET ALL
+      if (url.pathname === "/usuarios" && method === "GET") {
+        return Response.json(listarUsuarios());
+      }
 
+      // GET ONE
+      if (url.pathname.startsWith("/usuarios/") && method === "GET") {
+        const id = url.pathname.split("/")[2];
+        return Response.json(buscarUsuario(id));
+      }
 
-    if (url.pathname.startsWith("/usuarios/") && method === "GET") {
-      const id = url.pathname.split("/")[2];
-      return Response.json(buscarUsuario(id));
-    }
+      // CREATE
+      if (url.pathname === "/usuarios" && method === "POST") {
+        const body = await req.json();
+        const user = await criarUsuario(body.nome, body.senha);
+        return Response.json(user);
+      }
 
+      // UPDATE
+      if (url.pathname.startsWith("/usuarios/") && method === "PUT") {
+        const id = url.pathname.split("/")[2];
+        const body = await req.json();
 
-    if (url.pathname === "/usuarios" && method === "POST") {
-      const body = await req.json();
-      const user = await criarUsuario(body.nome, body.senha);
-      return Response.json(user);
-    }
+        await atualizarUsuario(id, body.nome);
 
+        return Response.json({
+          message: "Usuário atualizado com sucesso",
+        });
+      }
 
-    if (url.pathname.startsWith("/usuarios/") && method === "PUT") {
-      const id = url.pathname.split("/")[2];
-      const body = await req.json();
+      // DELETE
+      if (url.pathname.startsWith("/usuarios/") && method === "DELETE") {
+        const id = url.pathname.split("/")[2];
 
-      await atualizarUsuario(id, body.nome);
+        await deletarUsuario(id);
 
-      return Response.json({
-        message: "Usuário atualizado com sucesso",
-      });
-    }
+        return Response.json({
+          message: "Usuário removido com sucesso",
+        });
+      }
 
+      /* ================= FEED ================= */
 
-    if (url.pathname.startsWith("/usuarios/") && method === "DELETE") {
-      const id = url.pathname.split("/")[2];
+      // GET FEED
+      if (url.pathname === "/feed" && method === "GET") {
+        return Response.json(listarFeed());
+      }
 
-      await deletarUsuario(id);
+      // CREATE POST
+      if (url.pathname === "/feed" && method === "POST") {
+        const body = await req.json();
 
-      return Response.json({
-        message: "Usuário removido com sucesso",
-      });
-    }
+        const post = await criarPost(
+          body.usuario_id,
+          body.tipo
+        );
 
+        return Response.json(post);
+      }
 
-    if (url.pathname === "/feed" && method === "GET") {
-      return Response.json(listarFeed());
-    }
+      /* ================= NOT FOUND ================= */
 
-
-    if (url.pathname === "/feed" && method === "POST") {
-      const body = await req.json();
-
-      const post = await criarPost(
-        body.usuario_id,
-        body.tipo
+      return new Response(
+        JSON.stringify({ error: "Rota não encontrada" }),
+        {
+          status: 404,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
 
-      return Response.json(post);
+    } catch (error) {
+      console.error("ERRO NA API:", error);
+
+      return new Response(
+        JSON.stringify({
+          error: "Erro interno no servidor",
+        }),
+        {
+          status: 500,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
     }
-
-
-
-    return new Response(
-      JSON.stringify({ error: "Rota não encontrada" }),
-      {
-        status: 404,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
   },
 });
 
