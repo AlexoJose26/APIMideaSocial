@@ -15,9 +15,7 @@ export function runMigrations(sqlite: Database) {
     PRAGMA foreign_keys = ON;
   `);
 
-  // =========================
-  // USUÁRIOS
-  // =========================
+ 
   sqlite.exec(`
     CREATE TABLE usuarios (
       id TEXT PRIMARY KEY,
@@ -27,9 +25,7 @@ export function runMigrations(sqlite: Database) {
     );
   `);
 
-  // =========================
-  // LIVROS
-  // =========================
+
   sqlite.exec(`
     CREATE TABLE livros (
       id TEXT PRIMARY KEY,
@@ -39,12 +35,9 @@ export function runMigrations(sqlite: Database) {
     );
   `);
 
-  // =========================
-  // ESTANTES
-  // =========================
   sqlite.exec(`
     CREATE TABLE estantes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id TEXT PRIMARY KEY,
       usuario_id TEXT NOT NULL,
       livro_id TEXT NOT NULL,
       status TEXT NOT NULL,
@@ -52,23 +45,18 @@ export function runMigrations(sqlite: Database) {
     );
   `);
 
-  // =========================
-  // CRÍTICAS
-  // =========================
   sqlite.exec(`
     CREATE TABLE criticas (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id TEXT PRIMARY KEY,
       usuario_id TEXT NOT NULL,
       livro_id TEXT NOT NULL,
       texto TEXT NOT NULL,
-      nota INTEGER,
+      nota INTEGER NOT NULL DEFAULT 0,
       createdAt TEXT NOT NULL
     );
   `);
 
-  // =========================
-  // FEED (POSTS)
-  // =========================
+
   sqlite.exec(`
     CREATE TABLE feed (
       id TEXT PRIMARY KEY,
@@ -79,9 +67,7 @@ export function runMigrations(sqlite: Database) {
     );
   `);
 
-  // =========================
-  // ❤️ LIKES
-  // =========================
+
   sqlite.exec(`
     CREATE TABLE likes (
       id TEXT PRIMARY KEY,
@@ -91,9 +77,7 @@ export function runMigrations(sqlite: Database) {
     );
   `);
 
-  // =========================
-  // 💬 COMENTÁRIOS
-  // =========================
+
   sqlite.exec(`
     CREATE TABLE comentarios (
       id TEXT PRIMARY KEY,
