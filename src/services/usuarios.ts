@@ -4,6 +4,10 @@ import { randomUUID } from "crypto";
 import type { DB } from "../db/types/db";
 
 export async function criarUsuario(db: DB, nome: string, senha: string) {
+  if (!nome || !senha) {
+    return { error: "Nome e senha obrigatórios" };
+  }
+
   const id = randomUUID();
 
   await db.insert(usuarios).values({
@@ -16,17 +20,22 @@ export async function criarUsuario(db: DB, nome: string, senha: string) {
 }
 
 export function listarUsuarios(db: DB) {
-  return db.select().from(usuarios).all();
+  return db.select().from(usuarios).all() || [];
 }
 
 export function buscarUsuario(db: DB, id: string) {
-  return db.select().from(usuarios).where(eq(usuarios.id, id)).get();
+  if (!id) return null;
+  return db.select().from(usuarios).where(eq(usuarios.id, id)).get() || null;
 }
 
 export async function atualizarUsuario(db: DB, id: string, nome: string) {
-  return db.update(usuarios).set({ nome }).where(eq(usuarios.id, id));
+  if (!id || !nome) return { error: "Dados inválidos" };
+
+  return db.update(usuarios).set({ nome }).where(eq(usuarios.id, id)).run();
 }
 
 export async function deletarUsuario(db: DB, id: string) {
-  return db.delete(usuarios).where(eq(usuarios.id, id));
+  if (!id) return { error: "ID inválido" };
+
+  return db.delete(usuarios).where(eq(usuarios.id, id)).run();
 }

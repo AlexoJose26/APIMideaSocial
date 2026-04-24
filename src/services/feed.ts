@@ -1,21 +1,19 @@
 import { feed, usuarios } from "../db/schema";
 import { eq } from "drizzle-orm";
+import { randomUUID } from "crypto";
 import type { DB } from "../db/types/db";
 
-export async function criarPost(
-  db: DB,
-  usuario_id: string,
-  tipo: string
-) {
-  const createdAt = new Date().toISOString();
+export async function criarPost(db: DB, usuario_id: string, tipo: string) {
+  if (!usuario_id || !tipo) return { error: "Dados inválidos" };
 
-  await db.insert(feed).values({
+  const id = randomUUID();
+
+  return db.insert(feed).values({
+    id,
     usuario_id,
     tipo,
-    createdAt,
-  });
-
-  return { usuario_id, tipo };
+    createdAt: new Date().toISOString(),
+  }).run();
 }
 
 export function listarFeed(db: DB) {
@@ -28,5 +26,5 @@ export function listarFeed(db: DB) {
     })
     .from(feed)
     .leftJoin(usuarios, eq(feed.usuario_id, usuarios.id))
-    .all();
+    .all() || [];
 }

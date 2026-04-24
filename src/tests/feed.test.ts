@@ -5,55 +5,50 @@ import { criarUsuario } from "../services/usuarios";
 
 describe("Feed - profissional", () => {
 
-  test("cria post no feed", async () => {
+  test("Cria post", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "User1", "123");
+    const u = await criarUsuario(db, "Adilson", "123");
 
     await criarPost(db, u.id, "LOGIN");
 
     expect(listarFeed(db)).toHaveLength(1);
   });
 
-  test("feed contém item criado (toContainEqual)", async () => {
+  test("Contém post criado", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "User2", "123");
+    const u = await criarUsuario(db, "David", "123");
 
     await criarPost(db, u.id, "LOGIN");
 
-    const feed = listarFeed(db);
-
-    expect(feed).toContainEqual(
+    expect(listarFeed(db)).toContainEqual(
       expect.objectContaining({
         tipo: "LOGIN",
-        usuario_id: u.id,
+        usuario: "David",
       })
     );
   });
 
-  test("feed tem usuário válido", async () => {
+  test("Usuário correto", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "User3", "123");
+    const u = await criarUsuario(db, "Jorge", "123");
 
     await criarPost(db, u.id, "LOGIN");
 
-    const feed = listarFeed(db);
-
-    expect(feed[0].usuario_id).toBe(u.id);
+    expect(listarFeed(db)[0].usuario).toBe("Jorge");
   });
 
-  test("feed retorna array", () => {
+  test("Array válido", () => {
     const db = createTestDb();
-
     expect(Array.isArray(listarFeed(db))).toBeTruthy();
   });
 
-  test("múltiplos posts funcionam corretamente", async () => {
+  test("Múltiplos posts", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "User4", "123");
+    const u = await criarUsuario(db, "Dário", "123");
 
     await criarPost(db, u.id, "LOGIN");
     await criarPost(db, u.id, "POST");
@@ -61,53 +56,24 @@ describe("Feed - profissional", () => {
     expect(listarFeed(db)).toHaveLength(2);
   });
 
-  test("tipo do post não é vazio", async () => {
+  test("Tipo não vazio", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "User5", "123");
-
-    await criarPost(db, u.id, "LOGIN");
-
-    expect(listarFeed(db)[0].tipo.length).toBeGreaterThan(0);
-  });
-
-  test("feed não está vazio após insert", async () => {
-    const db = createTestDb();
-
-    const u = await criarUsuario(db, "User6", "123");
-
-    await criarPost(db, u.id, "LOGIN");
-
-    expect(listarFeed(db).length).toBeGreaterThan(0);
-  });
-
-  test("usuario_id é string válida", async () => {
-    const db = createTestDb();
-
-    const u = await criarUsuario(db, "User7", "123");
-
-    await criarPost(db, u.id, "LOGIN");
-
-    expect(typeof listarFeed(db)[0].usuario_id).toBe("string");
-  });
-
-  test("tipo é LOGIN válido", async () => {
-    const db = createTestDb();
-
-    const u = await criarUsuario(db, "User8", "123");
-
-    await criarPost(db, u.id, "LOGIN");
-
-    expect(listarFeed(db)[0].tipo).toBe("LOGIN");
-  });
-
-  test("feed não contém valores falsos (toBeTruthy)", async () => {
-    const db = createTestDb();
-
-    const u = await criarUsuario(db, "User9", "123");
+    const u = await criarUsuario(db, "Tiago", "123");
 
     await criarPost(db, u.id, "LOGIN");
 
     expect(listarFeed(db)[0].tipo).toBeTruthy();
   });
+
+  test("Usuario é string", async () => {
+    const db = createTestDb();
+
+    const u = await criarUsuario(db, "Diogo", "123");
+
+    await criarPost(db, u.id, "LOGIN");
+
+    expect(typeof listarFeed(db)[0].usuario).toBe("string");
+  });
+
 });

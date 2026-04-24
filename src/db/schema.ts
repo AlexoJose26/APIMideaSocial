@@ -27,7 +27,7 @@ export const estantes = sqliteTable("estantes", {
 
 
 export const criticas = sqliteTable("criticas", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+  id: text("id").primaryKey(), 
   usuario_id: text("usuario_id").notNull(),
   livro_id: text("livro_id").notNull(),
   texto: text("texto").notNull(),
@@ -35,10 +35,23 @@ export const criticas = sqliteTable("criticas", {
   createdAt: text("createdAt").notNull(),
 });
 
-
 export const feed = sqliteTable("feed", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   usuario_id: text("usuario_id").notNull(),
   tipo: text("tipo").notNull(),
   createdAt: text("createdAt").notNull(),
+});
+
+export const likes = sqliteTable("likes", {
+  id: text("id").primaryKey(),
+  feed_id: text("feed_id").notNull(),
+  usuario_id: text("usuario_id").notNull(),
+});
+
+export const comentarios = sqliteTable("comentarios", {
+  id: text("id").primaryKey(),
+  feed_id: text("feed_id").notNull(),
+  usuario_id: text("usuario_id").notNull(),
+  texto: text("texto").notNull(),
+  createdAt: text("created_at").notNull(),
 });

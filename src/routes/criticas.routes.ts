@@ -10,12 +10,12 @@ export async function criticasRoutes(req: Request) {
   const url = new URL(req.url);
   const method = req.method;
 
-  // GET /criticas
+
   if (url.pathname === "/criticas" && method === "GET") {
     return Response.json(listarCriticas(db));
   }
 
-  // POST /criticas
+
   if (url.pathname === "/criticas" && method === "POST") {
     const body = await req.json();
 
@@ -30,7 +30,7 @@ export async function criticasRoutes(req: Request) {
     return Response.json(result);
   }
 
-  // PUT /criticas/:id
+
   if (url.pathname.startsWith("/criticas/") && method === "PUT") {
     const id = Number(url.pathname.split("/")[2]);
     const body = await req.json();
@@ -40,7 +40,7 @@ export async function criticasRoutes(req: Request) {
     return Response.json({ message: "Crítica atualizada" });
   }
 
-  // DELETE /criticas/:id
+
   if (url.pathname.startsWith("/criticas/") && method === "DELETE") {
     const id = Number(url.pathname.split("/")[2]);
 

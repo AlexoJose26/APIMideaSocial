@@ -5,12 +5,11 @@ export async function feedRoutes(req: Request) {
   const url = new URL(req.url);
   const method = req.method;
 
-  // GET /feed
+
   if (url.pathname === "/feed" && method === "GET") {
     return Response.json(listarFeed(db));
   }
 
-  // POST /feed
   if (url.pathname === "/feed" && method === "POST") {
     const body = await req.json();
 

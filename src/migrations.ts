@@ -1,11 +1,11 @@
-import { db } from "./db";
+import { Database } from "bun:sqlite";
 
-export function runMigrations() {
-  const sqlite = db.$client;
-
+export function runMigrations(sqlite: Database) {
   sqlite.exec(`
     PRAGMA foreign_keys = OFF;
 
+    DROP TABLE IF EXISTS comentarios;
+    DROP TABLE IF EXISTS likes;
     DROP TABLE IF EXISTS feed;
     DROP TABLE IF EXISTS criticas;
     DROP TABLE IF EXISTS estantes;
@@ -15,6 +15,9 @@ export function runMigrations() {
     PRAGMA foreign_keys = ON;
   `);
 
+  // =========================
+  // USUÁRIOS
+  // =========================
   sqlite.exec(`
     CREATE TABLE usuarios (
       id TEXT PRIMARY KEY,
@@ -24,6 +27,9 @@ export function runMigrations() {
     );
   `);
 
+  // =========================
+  // LIVROS
+  // =========================
   sqlite.exec(`
     CREATE TABLE livros (
       id TEXT PRIMARY KEY,
@@ -33,6 +39,9 @@ export function runMigrations() {
     );
   `);
 
+  // =========================
+  // ESTANTES
+  // =========================
   sqlite.exec(`
     CREATE TABLE estantes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,6 +52,9 @@ export function runMigrations() {
     );
   `);
 
+  // =========================
+  // CRÍTICAS
+  // =========================
   sqlite.exec(`
     CREATE TABLE criticas (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,11 +66,40 @@ export function runMigrations() {
     );
   `);
 
+  // =========================
+  // FEED (POSTS)
+  // =========================
   sqlite.exec(`
     CREATE TABLE feed (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id TEXT PRIMARY KEY,
       usuario_id TEXT NOT NULL,
       tipo TEXT NOT NULL,
+      conteudo TEXT,
+      createdAt TEXT NOT NULL
+    );
+  `);
+
+  // =========================
+  // ❤️ LIKES
+  // =========================
+  sqlite.exec(`
+    CREATE TABLE likes (
+      id TEXT PRIMARY KEY,
+      feed_id TEXT NOT NULL,
+      usuario_id TEXT NOT NULL,
+      createdAt TEXT NOT NULL
+    );
+  `);
+
+  // =========================
+  // 💬 COMENTÁRIOS
+  // =========================
+  sqlite.exec(`
+    CREATE TABLE comentarios (
+      id TEXT PRIMARY KEY,
+      feed_id TEXT NOT NULL,
+      usuario_id TEXT NOT NULL,
+      texto TEXT NOT NULL,
       createdAt TEXT NOT NULL
     );
   `);

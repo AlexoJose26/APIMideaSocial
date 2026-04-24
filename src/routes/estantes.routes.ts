@@ -10,45 +10,97 @@ export async function estantesRoutes(req: Request) {
   const url = new URL(req.url);
   const method = req.method;
 
-  // GET /estantes/:usuario_id
-  if (url.pathname.startsWith("/estantes/") && method === "GET") {
-    const usuario_id = url.pathname.split("/")[2];
+  try {
+   
+    if (url.pathname === "/estantes" && method === "GET") {
+      const usuario_id = url.searchParams.get("usuario_id");
 
-    return Response.json(listarEstante(db, usuario_id));
-  }
+      if (!usuario_id) {
+        return Response.json(
+          { error: "usuario_id obrigatório" },
+          { status: 400 }
+        );
+      }
 
-  // POST /estantes
-  if (url.pathname === "/estantes" && method === "POST") {
-    const body = await req.json();
+      const result = listarEstante(db, usuario_id);
 
-    const result = await adicionarEstante(
-      db,
-      body.usuario_id,
-      body.livro_id,
-      body.status
+      return Response.json(result ?? []);
+    }
+
+
+
+    if (url.pathname === "/estantes" && method === "POST") {
+      const body = await req.json();
+
+      if (!body.usuario_id || !body.livro_id || !body.status) {
+        return Response.json(
+          { error: "Dados inválidos" },
+          { status: 400 }
+        );
+      }
+
+      const result = await adicionarEstante(
+        db,
+        body.usuario_id,
+        body.livro_id,
+        body.status
+      );
+
+      return Response.json(result);
+    }
+
+
+    if (url.pathname.startsWith("/estantes/") && method === "PUT") {
+      const id = Number(url.pathname.split("/")[2]);
+
+      if (!id) {
+        return Response.json(
+          { error: "ID inválido" },
+          { status: 400 }
+        );
+      }
+
+      const body = await req.json();
+
+      if (!body.status) {
+        return Response.json(
+          { error: "Status obrigatório" },
+          { status: 400 }
+        );
+      }
+
+      await atualizarStatus(db, id, body.status);
+
+      return Response.json({ message: "Atualizado com sucesso" });
+    }
+
+    if (url.pathname.startsWith("/estantes/") && method === "DELETE") {
+      const id = Number(url.pathname.split("/")[2]);
+
+      if (!id) {
+        return Response.json(
+          { error: "ID inválido" },
+          { status: 400 }
+        );
+      }
+
+      await removerEstante(db, id);
+
+      return Response.json({ message: "Removido com sucesso" });
+    }
+
+
+    return Response.json(
+      { error: "Rota não encontrada" },
+      { status: 404 }
     );
 
-    return Response.json(result);
+  } catch (err) {
+    console.error("Erro estantesRoutes:", err);
+
+    return Response.json(
+      { error: "Erro interno no servidor" },
+      { status: 500 }
+    );
   }
-
-  // PUT /estantes/:id
-  if (url.pathname.startsWith("/estantes/") && method === "PUT") {
-    const id = Number(url.pathname.split("/")[2]);
-    const body = await req.json();
-
-    await atualizarStatus(db, id, body.status);
-
-    return Response.json({ message: "Status atualizado" });
-  }
-
-  // DELETE /estantes/:id
-  if (url.pathname.startsWith("/estantes/") && method === "DELETE") {
-    const id = Number(url.pathname.split("/")[2]);
-
-    await removerEstante(db, id);
-
-    return Response.json({ message: "Removido da estante" });
-  }
-
-  return new Response("Not found", { status: 404 });
 }

@@ -1,7 +1,7 @@
 import { runMigrations } from "./src/migrations";
-import { db } from "./src/db";
+import { sqlite } from "./src/db";
 
-runMigrations();
+runMigrations(sqlite);
 
 import "./src/server";
 

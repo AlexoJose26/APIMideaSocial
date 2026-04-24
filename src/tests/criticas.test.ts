@@ -11,128 +11,124 @@ import { criarLivro } from "../services/livros";
 
 describe("Criticas CRUD - profissional", () => {
 
-  test("cria crítica com sucesso", async () => {
+  test("Cria crítica com sucesso", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "User1", "123");
-    const l = await criarLivro(db, "Livro 1");
+    const u = await criarUsuario(db, "Adilson", "123");
+    const l = await criarLivro(db, "O Poder do Hábito");
 
     await criarCritica(db, u.id, l.id, "Bom livro", 5);
 
     expect(listarCriticas(db)).toHaveLength(1);
   });
 
-  test("crítica tem dados corretos (toStrictEqual)", async () => {
+  test("Crítica tem dados corretos", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "User2", "123");
-    const l = await criarLivro(db, "Livro 2");
+    const u = await criarUsuario(db, "David", "1234");
+    const l = await criarLivro(db, "Pai Rico");
 
     await criarCritica(db, u.id, l.id, "Excelente", 4);
 
     const c = listarCriticas(db)[0];
 
-    expect(c).toStrictEqual(
+    expect(c).toEqual(
       expect.objectContaining({
         texto: "Excelente",
         nota: 4,
-        usuario_id: u.id,
-        livro_id: l.id,
+        usuario: "David",
+        livro: "Pai Rico",
       })
     );
   });
 
-  test("lista críticas retorna array", () => {
+  test("Lista críticas retorna array", () => {
     const db = createTestDb();
-
     expect(Array.isArray(listarCriticas(db))).toBeTruthy();
   });
 
-  test("crítica existe após criação (toContainEqual)", async () => {
+  test("Crítica existe após criação", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "User3", "123");
-    const l = await criarLivro(db, "Livro 3");
+    const u = await criarUsuario(db, "Jorge", "1235");
+    const l = await criarLivro(db, "O amor");
 
     await criarCritica(db, u.id, l.id, "Top", 5);
 
     const list = listarCriticas(db);
 
     expect(list).toContainEqual(
-      expect.objectContaining({
-        texto: "Top",
-      })
+      expect.objectContaining({ texto: "Top" })
     );
   });
 
-  test("nota é maior que zero", async () => {
+  test("Nota válida", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "User4", "123");
-    const l = await criarLivro(db, "Livro 4");
+    const u = await criarUsuario(db, "Dário", "1111");
+    const l = await criarLivro(db, "A Guerra");
 
     await criarCritica(db, u.id, l.id, "OK", 3);
 
-    expect(listarCriticas(db)[0].nota).toBeGreaterThan(0);
+    const nota = listarCriticas(db)[0].nota;
+
+    expect(nota).toBeGreaterThan(0);
+    expect(nota).toBeLessThanOrEqual(5);
   });
 
-  test("nota é menor ou igual a 5", async () => {
+  test("Atualiza crítica", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "User5", "123");
-    const l = await criarLivro(db, "Livro 5");
-
-    await criarCritica(db, u.id, l.id, "OK", 4);
-
-    expect(listarCriticas(db)[0].nota).toBeLessThan(6);
-  });
-
-  test("atualiza crítica com sucesso", async () => {
-    const db = createTestDb();
-
-    const u = await criarUsuario(db, "User6", "123");
-    const l = await criarLivro(db, "Livro 6");
+    const u = await criarUsuario(db, "Simone", "3333");
+    const l = await criarLivro(db, "A Felicidade");
 
     await criarCritica(db, u.id, l.id, "Antigo", 2);
 
-    const all = listarCriticas(db);
+    const c = listarCriticas(db)[0];
 
-    await atualizarCritica(db, all[0].id, "Atualizado");
+    await atualizarCritica(db, c.id, "Atualizado");
 
     expect(listarCriticas(db)[0].texto).toBe("Atualizado");
   });
 
-  test("remove crítica corretamente", async () => {
+  test("Remove crítica", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "User7", "123");
-    const l = await criarLivro(db, "Livro 7");
+    const u = await criarUsuario(db, "Diogo", "4444");
+    const l = await criarLivro(db, "Havemos de Voltar");
 
     await criarCritica(db, u.id, l.id, "Remover", 1);
 
-    const all = listarCriticas(db);
+    const c = listarCriticas(db)[0];
 
-    await deletarCritica(db, all[0].id);
+    await deletarCritica(db, c.id);
 
     expect(listarCriticas(db)).toHaveLength(0);
   });
 
-  test("crítica não é nula (toBeTruthy)", async () => {
+  test("Crítica não é nula", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "User8", "123");
-    const l = await criarLivro(db, "Livro 8");
+    const u = await criarUsuario(db, "Neto", "5555");
+    const l = await criarLivro(db, "O Turismo");
 
     await criarCritica(db, u.id, l.id, "Teste", 4);
 
     expect(listarCriticas(db)[0]).toBeTruthy();
   });
 
-  test("erro ao criar crítica inválida (toThrow)", () => {
+  test("Retorno contém usuario e livro", async () => {
     const db = createTestDb();
 
-    expect(() => {
-      criarCritica(db, "", "", "", -1);
-    }).not.toThrow(); 
+    const u = await criarUsuario(db, "Carlos", "999");
+    const l = await criarLivro(db, "Node.js");
+
+    await criarCritica(db, u.id, l.id, "Muito bom", 5);
+
+    const c = listarCriticas(db)[0];
+
+    expect(c.usuario).toBe("Carlos");
+    expect(c.livro).toBe("Node.js");
   });
+
 });
