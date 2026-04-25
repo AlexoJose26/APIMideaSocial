@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "type": "module",
   "private": true,
-  "module": "src/index.ts",
   "scripts": {
     "dev": "bun run src/index.ts",
     "start": "bun run src/index.ts",
@@ -12,6 +11,7 @@
     "db:push": "bunx drizzle-kit push"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
@@ -19,7 +19,7 @@
     "drizzle-kit": "^0.31.10",
     "typescript": "^5"
   },
-  "peerDependencies": {
-    "typescript": "^5"
+  "engines": {
+    "bun": ">=1.0.0"
   }
 }

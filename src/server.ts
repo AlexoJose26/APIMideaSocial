@@ -7,28 +7,15 @@ import { estantesRoutes } from "./routes/estantes.routes";
 import { feedRoutes } from "./routes/feed.routes";
 import { likesRoutes } from "./routes/likes.routes";
 import { comentariosRoutes } from "./routes/comentarios.routes";
+import { authRoutes } from "./routes/auth";
 
 const clients = new Set<any>();
-
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
-
-
-function broadcast(data: any) {
-  const payload = JSON.stringify(data);
-
-  for (const client of clients) {
-    try {
-      client.send(payload);
-    } catch (err) {
-      clients.delete(client);
-    }
-  }
-}
 
 export const server = serve({
   port: 3000,
@@ -37,16 +24,12 @@ export const server = serve({
     open(ws) {
       clients.add(ws);
     },
-
     message(ws, message) {
       try {
         const data = JSON.parse(message.toString());
-        broadcast(data);
-      } catch (err) {
-        console.error("WS erro:", err);
-      }
+        for (const client of clients) client.send(JSON.stringify(data));
+      } catch {}
     },
-
     close(ws) {
       clients.delete(ws);
     },
@@ -55,57 +38,60 @@ export const server = serve({
   async fetch(req, server) {
     const url = new URL(req.url);
 
-
     if (req.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
     }
-
 
     if (url.pathname === "/ws") {
       const upgraded = server.upgrade(req);
       if (upgraded) return;
     }
 
-    try {
-      let res: Response;
+    let res: Response;
 
-
-      if (url.pathname.startsWith("/usuarios")) {
-        res = await usuariosRoutes(req);
-      } else if (url.pathname.startsWith("/livros")) {
-        res = await livrosRoutes(req);
-      } else if (url.pathname.startsWith("/criticas")) {
-        res = await criticasRoutes(req);
-      } else if (url.pathname.startsWith("/estantes")) {
-        res = await estantesRoutes(req);
-      } else if (url.pathname.startsWith("/feed")) {
-        res = await feedRoutes(req);
-      } else if (url.pathname.startsWith("/likes")) {
-        res = await likesRoutes(req);
-      } else if (url.pathname.startsWith("/comentarios")) {
-        res = await comentariosRoutes(req);
-      } else {
-        res = Response.json(
-          { error: "Rota não encontrada" },
-          { status: 404 }
-        );
-      }
-
-      Object.entries(corsHeaders).forEach(([key, value]) => {
-        res.headers.set(key, value);
-      });
-
-      return res;
-
-    } catch (err) {
-      console.error("SERVER ERROR:", err);
-
-      return Response.json(
-        { error: "Erro interno no servidor" },
-        { status: 500, headers: corsHeaders }
-      );
+    // 🔐 AUTH (IMPORTANTE)
+    if (url.pathname.startsWith("/auth")) {
+      res = await authRoutes(req);
     }
+
+    else if (url.pathname.startsWith("/usuarios")) {
+      res = await usuariosRoutes(req);
+    }
+
+    else if (url.pathname.startsWith("/livros")) {
+      res = await livrosRoutes(req);
+    }
+
+    else if (url.pathname.startsWith("/criticas")) {
+      res = await criticasRoutes(req);
+    }
+
+    else if (url.pathname.startsWith("/estantes")) {
+      res = await estantesRoutes(req);
+    }
+
+    else if (url.pathname.startsWith("/feed")) {
+      res = await feedRoutes(req);
+    }
+
+    else if (url.pathname.startsWith("/likes")) {
+      res = await likesRoutes(req);
+    }
+
+    else if (url.pathname.startsWith("/comentarios")) {
+      res = await comentariosRoutes(req);
+    }
+
+    else {
+      res = Response.json({ error: "Rota não encontrada" }, { status: 404 });
+    }
+
+    Object.entries(corsHeaders).forEach(([k, v]) => {
+      res.headers.set(k, v);
+    });
+
+    return res;
   },
 });
 
-console.log("API rodando em http://localhost:3000");
+console.log(" API rodando em http://localhost:3000");
