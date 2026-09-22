@@ -1,18 +1,37 @@
-import { sessions } from "./session";
+import { Elysia } from "elysia";
 
-export async function logoutRoute(req: Request) {
-  const token = req.headers
-    .get("Authorization")
-    ?.replace("Bearer ", "");
+import { db } from "../../db";
+import { removerSessao } from "./session";
 
-  if (!token) {
-    return Response.json({ error: "Sem token" }, { status: 401 });
-  }
+export const logoutRoute = new Elysia()
+  .post("/logout", async ({ headers, set }) => {
+    const authorization =
+      headers.authorization;
 
-  sessions.delete(token);
+    if (!authorization) {
+      return {
+        success: true,
+        message: "Sessão encerrada.",
+      };
+    }
 
-  return Response.json({
-    success: true,
-    message: "Logout efetuado",
+    const token = authorization.startsWith("Bearer ")
+      ? authorization.substring(7).trim()
+      : authorization.trim();
+
+    if (!token) {
+      return {
+        success: true,
+        message: "Sessão encerrada.",
+      };
+    }
+
+    await removerSessao(db, token);
+
+    set.status = 200;
+
+    return {
+      success: true,
+      message: "Sessão encerrada com sucesso.",
+    };
   });
-}

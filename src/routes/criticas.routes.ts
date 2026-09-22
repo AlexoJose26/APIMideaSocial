@@ -1,3 +1,5 @@
+import { Elysia } from "elysia";
+
 import { db } from "../db/index";
 import {
   criarCritica,
@@ -6,48 +8,50 @@ import {
   deletarCritica,
 } from "../services/criticas";
 
-export async function criticasRoutes(req: Request) {
-  const url = new URL(req.url);
-  const method = req.method;
+export const criticasRoutes = (app: Elysia) =>
+  app
 
 
-  if (url.pathname === "/criticas" && method === "GET") {
-    return Response.json(listarCriticas(db));
-  }
+    .get("/", async () => {
+      return await listarCriticas(db);
+    })
 
 
-  if (url.pathname === "/criticas" && method === "POST") {
-    const body = await req.json();
+    .post("/", async ({ body }) => {
+      const result = await criarCritica(
+        db,
+        body.usuario_id,
+        body.livro_id,
+        body.texto,
+        body.nota
+      );
 
-    const result = await criarCritica(
-      db,
-      body.usuario_id,
-      body.livro_id,
-      body.texto,
-      body.nota
-    );
-
-    return Response.json(result);
-  }
+      return result;
+    })
 
 
-  if (url.pathname.startsWith("/criticas/") && method === "PUT") {
-    const id = Number(url.pathname.split("/")[2]);
-    const body = await req.json();
+    .put("/:id", async ({ params, body, set }) => {
+      const id = Number(params.id);
 
-    await atualizarCritica(db, id, body.texto);
+      if (!id) {
+        set.status = 400;
+        return { error: "ID inválido" };
+      }
 
-    return Response.json({ message: "Crítica atualizada" });
-  }
+      await atualizarCritica(db, id, body.texto);
 
+      return { message: "Crítica atualizada" };
+    })
 
-  if (url.pathname.startsWith("/criticas/") && method === "DELETE") {
-    const id = Number(url.pathname.split("/")[2]);
+    .delete("/:id", async ({ params, set }) => {
+      const id = Number(params.id);
 
-    await deletarCritica(db, id);
+      if (!id) {
+        set.status = 400;
+        return { error: "ID inválido" };
+      }
 
-    return Response.json({ message: "Crítica removida" });
-  }
+      await deletarCritica(db, id);
 
-  return new Response("Not found", { status: 404 });
-}
+      return { message: "Crítica removida" };
+    });

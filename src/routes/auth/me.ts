@@ -1,41 +1,54 @@
-import { sessions } from "./session";
+import { Elysia } from "elysia";
+
 import { db } from "../../db";
-import { usuarios } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { obterSessao } from "./session";
 
-export async function meRoute(req: Request) {
-  const token = req.headers
-    .get("Authorization")
-    ?.replace("Bearer ", "");
+export const meRoute = new Elysia()
+  .get("/me", async ({ headers, set }) => {
+    const authorization =
+      headers.authorization;
 
-  if (!token) {
-    return Response.json({ error: "Sem token" }, { status: 401 });
-  }
+    if (!authorization) {
+      set.status = 401;
 
-  const session = sessions.get(token);
+      return {
+        success: false,
+        message: "Token não fornecido.",
+      };
+    }
 
-  if (!session) {
-    return Response.json({ error: "Sessão inválida" }, { status: 401 });
-  }
+    const token = authorization.startsWith("Bearer ")
+      ? authorization.substring(7).trim()
+      : authorization.trim();
 
-  if (Date.now() > session.expiresAt) {
-    sessions.delete(token);
+    if (!token) {
+      set.status = 401;
 
-    return Response.json({ error: "Sessão expirada" }, { status: 401 });
-  }
+      return {
+        success: false,
+        message: "Token inválido.",
+      };
+    }
 
-  const user = db
-    .select()
-    .from(usuarios)
-    .where(eq(usuarios.id, session.userId))
-    .get();
+    const sessao = await obterSessao(
+      db,
+      token,
+    );
 
-  if (!user) {
-    return Response.json({ error: "Utilizador não encontrado" }, { status: 404 });
-  }
+    if (!sessao) {
+      set.status = 401;
 
-  return Response.json({
-    id: user.id,
-    nome: user.nome,
+      return {
+        success: false,
+        message: "Sessão inválida ou expirada.",
+      };
+    }
+
+    return {
+      success: true,
+      user: sessao.usuario,
+      session: {
+        expiresAt: sessao.sessao.expiresAt,
+      },
+    };
   });
-}

@@ -74,7 +74,7 @@ export function listarCriticas(db: DB, livro_id?: string) {
     ? query.where(eq(criticas.livro_id, livro_id)).all()
     : query.all();
 }
-// UPDATE
+
 export async function atualizarCritica(
   db: DB,
   id: string,
@@ -93,7 +93,7 @@ export async function atualizarCritica(
   return { id, texto, nota };
 }
 
-// DELETE
+
 export async function deletarCritica(db: DB, id: string) {
   await db.delete(criticas).where(eq(criticas.id, id)).run();
   return { success: true };

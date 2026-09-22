@@ -1,3 +1,5 @@
+import { Elysia } from "elysia";
+
 import { db } from "../db/index";
 import {
   criarLivro,
@@ -7,40 +9,34 @@ import {
   deletarLivro,
 } from "../services/livros";
 
-export async function livrosRoutes(req: Request) {
-  const url = new URL(req.url);
-  const method = req.method;
+export const livrosRoutes = (app: Elysia) =>
+  app
 
-  if (url.pathname === "/livros" && method === "GET") {
-    return Response.json(listarLivros(db));
-  }
 
-  if (url.pathname === "/livros" && method === "POST") {
-    const body = await req.json();
-    return Response.json(await criarLivro(db, body.titulo));
-  }
+    .get("/", async () => {
+      return await listarLivros(db);
+    })
 
-  if (url.pathname.startsWith("/livros/") && method === "GET") {
-    const id = url.pathname.split("/")[2];
-    return Response.json(buscarLivro(db, id));
-  }
 
-  if (url.pathname.startsWith("/livros/") && method === "PUT") {
-    const id = url.pathname.split("/")[2];
-    const body = await req.json();
+    .get("/:id", async ({ params }) => {
+      return await buscarLivro(db, params.id);
+    })
 
-    await atualizarLivro(db, id, body.titulo);
 
-    return Response.json({ message: "Atualizado" });
-  }
+    .post("/", async ({ body }) => {
+      return await criarLivro(db, body.titulo);
+    })
 
-  if (url.pathname.startsWith("/livros/") && method === "DELETE") {
-    const id = url.pathname.split("/")[2];
 
-    await deletarLivro(db, id);
+    .put("/:id", async ({ params, body }) => {
+      await atualizarLivro(db, params.id, body.titulo);
 
-    return Response.json({ message: "Removido" });
-  }
+      return { message: "Atualizado" };
+    })
 
-  return new Response("Not found", { status: 404 });
-}
+
+    .delete("/:id", async ({ params }) => {
+      await deletarLivro(db, params.id);
+
+      return { message: "Removido" };
+    });

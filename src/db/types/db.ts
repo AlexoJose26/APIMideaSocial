@@ -1,3 +1,3 @@
-import { drizzle } from "drizzle-orm/bun-sqlite";
+import type { db } from "../index";
 
-export type DB = ReturnType<typeof drizzle>;
+export type DB = typeof db;

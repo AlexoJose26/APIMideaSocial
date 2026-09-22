@@ -3,3 +3,5 @@ apimideasocial.db
 *.db
 drizzle/
 .env
+.env.*
+!.env.example

@@ -1,4 +1,5 @@
-import { serve } from "bun";
+import { Elysia } from "elysia";
+import { cors } from "@elysiajs/cors";
 
 import { usuariosRoutes } from "./routes/usuarios.routes";
 import { livrosRoutes } from "./routes/livros.routes";
@@ -9,89 +10,52 @@ import { likesRoutes } from "./routes/likes.routes";
 import { comentariosRoutes } from "./routes/comentarios.routes";
 import { authRoutes } from "./routes/auth";
 
-const clients = new Set<any>();
+export function createApp() {
+  const app = new Elysia()
+    .use(
+      cors({
+        origin: true,
+        credentials: true,
+      }),
+    )
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
+    .group("/auth", (app) =>
+      authRoutes(app),
+    )
 
-export const server = serve({
-  port: 3000,
+    .group("/usuarios", (app) =>
+      usuariosRoutes(app),
+    )
 
-  websocket: {
-    open(ws) {
-      clients.add(ws);
-    },
-    message(ws, message) {
-      try {
-        const data = JSON.parse(message.toString());
-        for (const client of clients) client.send(JSON.stringify(data));
-      } catch {}
-    },
-    close(ws) {
-      clients.delete(ws);
-    },
-  },
+    .group("/livros", (app) =>
+      livrosRoutes(app),
+    )
 
-  async fetch(req, server) {
-    const url = new URL(req.url);
+    .group("/criticas", (app) =>
+      criticasRoutes(app),
+    )
 
-    if (req.method === "OPTIONS") {
-      return new Response(null, { headers: corsHeaders });
-    }
+    .group("/estantes", (app) =>
+      estantesRoutes(app),
+    )
 
-    if (url.pathname === "/ws") {
-      const upgraded = server.upgrade(req);
-      if (upgraded) return;
-    }
+    .group("/feed", (app) =>
+      feedRoutes(app),
+    )
 
-    let res: Response;
+    .group("/likes", (app) =>
+      likesRoutes(app),
+    )
 
-    // 🔐 AUTH (IMPORTANTE)
-    if (url.pathname.startsWith("/auth")) {
-      res = await authRoutes(req);
-    }
+    .group("/comentarios", (app) =>
+      comentariosRoutes(app),
+    )
 
-    else if (url.pathname.startsWith("/usuarios")) {
-      res = await usuariosRoutes(req);
-    }
+    .get("/health", () => ({
+      status: "ok",
+      service: "MedeaSocial API",
+      time: new Date().toISOString(),
+    }));
 
-    else if (url.pathname.startsWith("/livros")) {
-      res = await livrosRoutes(req);
-    }
-
-    else if (url.pathname.startsWith("/criticas")) {
-      res = await criticasRoutes(req);
-    }
-
-    else if (url.pathname.startsWith("/estantes")) {
-      res = await estantesRoutes(req);
-    }
-
-    else if (url.pathname.startsWith("/feed")) {
-      res = await feedRoutes(req);
-    }
-
-    else if (url.pathname.startsWith("/likes")) {
-      res = await likesRoutes(req);
-    }
-
-    else if (url.pathname.startsWith("/comentarios")) {
-      res = await comentariosRoutes(req);
-    }
-
-    else {
-      res = Response.json({ error: "Rota não encontrada" }, { status: 404 });
-    }
-
-    Object.entries(corsHeaders).forEach(([k, v]) => {
-      res.headers.set(k, v);
-    });
-
-    return res;
-  },
-});
-
-console.log(" API rodando em http://localhost:3000");
+  return app;
+}

@@ -1,3 +1,5 @@
+import { Elysia } from "elysia";
+
 import { db } from "../db/index";
 import {
   criarUsuario,
@@ -7,41 +9,44 @@ import {
   deletarUsuario,
 } from "../services/usuarios";
 
-export async function usuariosRoutes(req: Request) {
-  const url = new URL(req.url);
-  const method = req.method;
+export const usuariosRoutes = (app: Elysia) =>
+  app
 
-  if (url.pathname === "/usuarios" && method === "GET") {
-    return Response.json(listarUsuarios(db));
-  }
+  
+    .get("/", async () => {
+      return await listarUsuarios(db);
+    })
 
-  if (url.pathname === "/usuarios" && method === "POST") {
-    const body = await req.json();
-    const user = await criarUsuario(db, body.nome, body.senha);
-    return Response.json(user);
-  }
 
-  if (url.pathname.startsWith("/usuarios/") && method === "GET") {
-    const id = url.pathname.split("/")[2];
-    return Response.json(buscarUsuario(db, id));
-  }
+    .get("/:id", async ({ params }) => {
+      return await buscarUsuario(db, params.id);
+    })
 
-  if (url.pathname.startsWith("/usuarios/") && method === "PUT") {
-    const id = url.pathname.split("/")[2];
-    const body = await req.json();
 
-    await atualizarUsuario(db, id, body.nome);
+    .post("/", async ({ body }) => {
+      const user = await criarUsuario(
+        db,
+        body.nome,
+        body.senha
+      );
 
-    return Response.json({ message: "Atualizado" });
-  }
+      return user;
+    })
 
-  if (url.pathname.startsWith("/usuarios/") && method === "DELETE") {
-    const id = url.pathname.split("/")[2];
 
-    await deletarUsuario(db, id);
+    .put("/:id", async ({ params, body }) => {
+      await atualizarUsuario(
+        db,
+        params.id,
+        body.nome
+      );
 
-    return Response.json({ message: "Removido" });
-  }
+      return { message: "Atualizado" };
+    })
 
-  return new Response("Not found", { status: 404 });
-}
+
+    .delete("/:id", async ({ params }) => {
+      await deletarUsuario(db, params.id);
+
+      return { message: "Removido" };
+    });

@@ -1,0 +1,176 @@
+
+POST http://localhost:3000/usuarios
+Content-Type: application/json
+
+{
+  "nome": "Alexo",
+  "senha": "2612"
+}
+
+
+PUT http://localhost:3000/usuarios/:id
+Content-Type: application/json
+
+{
+  "nome": "Alexo",
+  "senha": "2612"
+}
+
+
+DELETE http://localhost:3000/usuarios/:id
+
+
+GET http://localhost:3000/usuarios?nome=Alexo
+
+
+GET http://localhost:3000/usuarios/:id/estantes
+
+
+
+POST http://localhost:3000/livros
+Content-Type: application/json
+
+{
+  "titulo": "Livro X",
+  "autor": "Autor Y"
+}
+
+
+GET http://localhost:3000/livros
+
+
+GET http://localhost:3000/livros/:id
+
+
+PUT http://localhost:3000/livros/:id
+
+
+DELETE http://localhost:3000/livros/:id
+
+
+GET http://localhost:3000/livros?titulo=Harry
+
+
+GET http://localhost:3000/livros/:id/criticas
+
+
+
+POST http://localhost:3000/criticas
+Content-Type: application/json
+
+{
+  "usuario_id": "1",
+  "livro_id": "1",
+  "texto": "Muito bom",
+  "nota": 5
+}
+
+
+
+GET http://localhost:3000/criticas
+
+
+
+GET http://localhost:3000/criticas/:id
+
+
+
+
+DELETE http://localhost:3000/criticas/:id
+
+
+
+GET http://localhost:3000/criticas?usuario_id=1
+
+
+
+
+GET http://localhost:3000/criticas?livro_id=1
+
+
+
+
+POST http://localhost:3000/estantes
+Content-Type: application/json
+
+{
+  "usuario_id": "1",
+  "livro_id": "1",
+  "status": "lendo"
+}
+
+
+
+ http://localhost:3000/estantes
+
+
+
+
+GET http://localhost:3000/estantes/:id
+
+
+
+
+PUT http://localhost:3000/estantes/:id
+
+
+
+GET http://localhost:3000/estantes?usuario_id=1
+
+
+
+
+GET http://localhost:3000/estantes?status=lendo
+
+
+
+
+POST http://localhost:3000/feed
+
+
+
+
+GET http://localhost:3000/feed
+
+
+
+GET http://localhost:3000/feed/:id
+
+
+
+PUT http://localhost:3000/feed/:id
+
+
+
+GET http://localhost:3000/feed?usuario_id=1
+
+
+
+GET http://localhost:3000/feed/:id/interacoes
+
+
+
+POST http://localhost:3000/likes
+
+
+
+
+GET http://localhost:3000/likes
+
+
+GET http://localhost:3000/likes/:id
+
+
+
+DELETE http://localhost:3000/likes/:id
+
+
+GET http://localhost:3000/likes?feed_id=1
+
+
+
+GET http://localhost:3000/likes?usuario_id=1
+
+
+
+GET http://localhost:3000/likes/count?feed_id=1

@@ -1,3 +1,5 @@
+import { Elysia } from "elysia";
+
 import { db } from "../db/index";
 import {
   adicionarEstante,
@@ -6,37 +8,27 @@ import {
   removerEstante,
 } from "../services/estantes";
 
-export async function estantesRoutes(req: Request) {
-  const url = new URL(req.url);
-  const method = req.method;
+export const estantesRoutes = (app: Elysia) =>
+  app
 
-  try {
-   
-    if (url.pathname === "/estantes" && method === "GET") {
-      const usuario_id = url.searchParams.get("usuario_id");
+    
+    .get("/", async ({ query, set }) => {
+      const { usuario_id } = query;
 
       if (!usuario_id) {
-        return Response.json(
-          { error: "usuario_id obrigatório" },
-          { status: 400 }
-        );
+        set.status = 400;
+        return { error: "usuario_id obrigatório" };
       }
 
       const result = listarEstante(db, usuario_id);
 
-      return Response.json(result ?? []);
-    }
+      return result ?? [];
+    })
 
-
-
-    if (url.pathname === "/estantes" && method === "POST") {
-      const body = await req.json();
-
+    .post("/", async ({ body, set }) => {
       if (!body.usuario_id || !body.livro_id || !body.status) {
-        return Response.json(
-          { error: "Dados inválidos" },
-          { status: 400 }
-        );
+        set.status = 400;
+        return { error: "Dados inválidos" };
       }
 
       const result = await adicionarEstante(
@@ -46,61 +38,38 @@ export async function estantesRoutes(req: Request) {
         body.status
       );
 
-      return Response.json(result);
-    }
+      return result;
+    })
 
 
-    if (url.pathname.startsWith("/estantes/") && method === "PUT") {
-      const id = Number(url.pathname.split("/")[2]);
+    .put("/:id", async ({ params, body, set }) => {
+      const id = Number(params.id);
 
       if (!id) {
-        return Response.json(
-          { error: "ID inválido" },
-          { status: 400 }
-        );
+        set.status = 400;
+        return { error: "ID inválido" };
       }
 
-      const body = await req.json();
-
       if (!body.status) {
-        return Response.json(
-          { error: "Status obrigatório" },
-          { status: 400 }
-        );
+        set.status = 400;
+        return { error: "Status obrigatório" };
       }
 
       await atualizarStatus(db, id, body.status);
 
-      return Response.json({ message: "Atualizado com sucesso" });
-    }
+      return { message: "Atualizado com sucesso" };
+    })
 
-    if (url.pathname.startsWith("/estantes/") && method === "DELETE") {
-      const id = Number(url.pathname.split("/")[2]);
+
+    .delete("/:id", async ({ params, set }) => {
+      const id = Number(params.id);
 
       if (!id) {
-        return Response.json(
-          { error: "ID inválido" },
-          { status: 400 }
-        );
+        set.status = 400;
+        return { error: "ID inválido" };
       }
 
       await removerEstante(db, id);
 
-      return Response.json({ message: "Removido com sucesso" });
-    }
-
-
-    return Response.json(
-      { error: "Rota não encontrada" },
-      { status: 404 }
-    );
-
-  } catch (err) {
-    console.error("Erro estantesRoutes:", err);
-
-    return Response.json(
-      { error: "Erro interno no servidor" },
-      { status: 500 }
-    );
-  }
-}
+      return { message: "Removido com sucesso" };
+    });
