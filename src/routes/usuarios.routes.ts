@@ -1,6 +1,7 @@
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 
-import { db } from "../db/index";
+import { db } from "../db";
+
 import {
   criarUsuario,
   listarUsuarios,
@@ -9,44 +10,159 @@ import {
   deletarUsuario,
 } from "../services/usuarios";
 
-export const usuariosRoutes = (app: Elysia) =>
-  app
-
-  
-    .get("/", async () => {
+export const usuariosRoutes = new Elysia({
+  prefix: "/usuarios",
+})
+  .get("/", async ({ set }) => {
+    try {
       return await listarUsuarios(db);
-    })
+    } catch (error) {
+      console.error("Erro ao listar usuários:", error);
 
+      set.status = 500;
 
-    .get("/:id", async ({ params }) => {
-      return await buscarUsuario(db, params.id);
-    })
+      return {
+        success: false,
+        message: "Não foi possível listar os usuários.",
+      };
+    }
+  })
 
+  .get(
+    "/:id",
+    async ({ params, set }) => {
+      try {
+        const usuario = await buscarUsuario(
+          db,
+          params.id,
+        );
 
-    .post("/", async ({ body }) => {
-      const user = await criarUsuario(
-        db,
-        body.nome,
-        body.senha
-      );
+        if (!usuario) {
+          set.status = 404;
 
-      return user;
-    })
+          return {
+            success: false,
+            message: "Usuário não encontrado.",
+          };
+        }
 
+        return usuario;
+      } catch (error) {
+        console.error("Erro ao buscar usuário:", error);
 
-    .put("/:id", async ({ params, body }) => {
-      await atualizarUsuario(
-        db,
-        params.id,
-        body.nome
-      );
+        set.status = 500;
 
-      return { message: "Atualizado" };
-    })
+        return {
+          success: false,
+          message: "Não foi possível buscar o usuário.",
+        };
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+      }),
+    },
+  )
 
+  .post(
+    "/",
+    async ({ body, set }) => {
+      try {
+        return await criarUsuario(
+          db,
+          body.nome,
+          body.senha,
+        );
+      } catch (error) {
+        console.error("Erro ao criar usuário:", error);
 
-    .delete("/:id", async ({ params }) => {
-      await deletarUsuario(db, params.id);
+        set.status = 500;
 
-      return { message: "Removido" };
-    });
+        return {
+          success: false,
+          message: "Não foi possível criar o usuário.",
+        };
+      }
+    },
+    {
+      body: t.Object({
+        nome: t.String({
+          minLength: 1,
+        }),
+
+        senha: t.String({
+          minLength: 6,
+        }),
+      }),
+    },
+  )
+
+  .put(
+    "/:id",
+    async ({ params, body, set }) => {
+      try {
+        await atualizarUsuario(
+          db,
+          params.id,
+          body.nome,
+        );
+
+        return {
+          success: true,
+          message: "Usuário atualizado com sucesso.",
+        };
+      } catch (error) {
+        console.error("Erro ao atualizar usuário:", error);
+
+        set.status = 500;
+
+        return {
+          success: false,
+          message: "Não foi possível atualizar o usuário.",
+        };
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+      }),
+
+      body: t.Object({
+        nome: t.String({
+          minLength: 1,
+        }),
+      }),
+    },
+  )
+
+  .delete(
+    "/:id",
+    async ({ params, set }) => {
+      try {
+        await deletarUsuario(
+          db,
+          params.id,
+        );
+
+        return {
+          success: true,
+          message: "Usuário removido com sucesso.",
+        };
+      } catch (error) {
+        console.error("Erro ao remover usuário:", error);
+
+        set.status = 500;
+
+        return {
+          success: false,
+          message: "Não foi possível remover o usuário.",
+        };
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+      }),
+    },
+  );

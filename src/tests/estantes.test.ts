@@ -1,59 +1,150 @@
 import { describe, test, expect } from "bun:test";
+
 import { createTestDb } from "../db/test-db";
+
 import {
   adicionarEstante,
   listarEstante,
   atualizarStatus,
   removerEstante,
 } from "../services/estantes";
+
 import { criarUsuario } from "../services/usuarios";
 import { criarLivro } from "../services/livros";
 
-describe("Estantes CRUD - profissional", () => {
-
+describe("Estantes CRUD - PostgreSQL", () => {
   test("Adiciona livro", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Adilson", "123");
-    const l = await criarLivro(db, "Livro");
+    const u = await criarUsuario(
+      db,
+      `Adilson-${crypto.randomUUID()}`,
+      "Senha123",
+    );
 
-    await adicionarEstante(db, u.id, l.id, "Lendo");
+    const l = await criarLivro(
+      db,
+      "Livro",
+    );
 
-    expect(listarEstante(db, u.id)).toHaveLength(1);
+    await adicionarEstante(
+      db,
+      u.id,
+      l.id,
+      "lendo",
+    );
+
+    const lista = await listarEstante(
+      db,
+      u.id,
+    );
+
+    expect(
+      lista.some(
+        (item) =>
+          item.usuario_id === u.id &&
+          item.livro_id === l.id,
+      ),
+    ).toBe(true);
   });
 
   test("Lista não vazia", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "David", "123");
-    const l = await criarLivro(db, "Pai Rico");
+    const u = await criarUsuario(
+      db,
+      `David-${crypto.randomUUID()}`,
+      "Senha123",
+    );
 
-    await adicionarEstante(db, u.id, l.id, "Lendo");
+    const l = await criarLivro(
+      db,
+      "Pai Rico",
+    );
 
-    expect(listarEstante(db, u.id).length).toBeGreaterThan(0);
+    await adicionarEstante(
+      db,
+      u.id,
+      l.id,
+      "lendo",
+    );
+
+    const lista = await listarEstante(
+      db,
+      u.id,
+    );
+
+    expect(lista.length).toBeGreaterThan(0);
   });
 
   test("Status correto", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Jorge", "123");
-    const l = await criarLivro(db, "Livro");
+    const u = await criarUsuario(
+      db,
+      `Jorge-${crypto.randomUUID()}`,
+      "Senha123",
+    );
 
-    await adicionarEstante(db, u.id, l.id, "Lido");
+    const l = await criarLivro(
+      db,
+      "Livro",
+    );
 
-    expect(listarEstante(db, u.id)[0].status).toBe("Lido");
+    await adicionarEstante(
+      db,
+      u.id,
+      l.id,
+      "lido",
+    );
+
+    const lista = await listarEstante(
+      db,
+      u.id,
+    );
+
+    const item = lista.find(
+      (estante) =>
+        estante.livro_id === l.id,
+    );
+
+    expect(item?.status).toBe("lido");
   });
 
   test("Estrutura contém usuario e livro", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Tiago", "123");
-    const l = await criarLivro(db, "Livro");
+    const nome = `Tiago-${crypto.randomUUID()}`;
 
-    await adicionarEstante(db, u.id, l.id, "Lendo");
+    const u = await criarUsuario(
+      db,
+      nome,
+      "Senha123",
+    );
 
-    const e = listarEstante(db, u.id)[0];
+    const l = await criarLivro(
+      db,
+      "Livro",
+    );
 
+    await adicionarEstante(
+      db,
+      u.id,
+      l.id,
+      "lendo",
+    );
+
+    const lista = await listarEstante(
+      db,
+      u.id,
+    );
+
+    const e = lista.find(
+      (item) =>
+        item.livro_id === l.id,
+    );
+
+    expect(e).toBeTruthy();
     expect(e).toHaveProperty("usuario");
     expect(e).toHaveProperty("livro");
   });
@@ -61,45 +152,143 @@ describe("Estantes CRUD - profissional", () => {
   test("Atualiza status", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Simone", "123");
-    const l = await criarLivro(db, "Livro");
+    const u = await criarUsuario(
+      db,
+      `Simone-${crypto.randomUUID()}`,
+      "Senha123",
+    );
 
-    await adicionarEstante(db, u.id, l.id, "Lendo");
+    const l = await criarLivro(
+      db,
+      "Livro",
+    );
 
-    const e = listarEstante(db, u.id)[0];
+    await adicionarEstante(
+      db,
+      u.id,
+      l.id,
+      "lendo",
+    );
 
-    await atualizarStatus(db, e.id, "Lido");
+    const lista = await listarEstante(
+      db,
+      u.id,
+    );
 
-    expect(listarEstante(db, u.id)[0].status).toBe("Lido");
+    const e = lista.find(
+      (item) =>
+        item.livro_id === l.id,
+    );
+
+    expect(e).toBeTruthy();
+
+    await atualizarStatus(
+      db,
+      e!.id,
+      u.id,
+      "lido",
+    );
+
+    const atualizada = await listarEstante(
+      db,
+      u.id,
+    );
+
+    const resultado = atualizada.find(
+      (item) =>
+        item.id === e!.id,
+    );
+
+    expect(resultado?.status).toBe("lido");
   });
 
   test("Remove estante", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Diogo", "123");
-    const l = await criarLivro(db, "Livro");
+    const u = await criarUsuario(
+      db,
+      `Diogo-${crypto.randomUUID()}`,
+      "Senha123",
+    );
 
-    await adicionarEstante(db, u.id, l.id, "Lendo");
+    const l = await criarLivro(
+      db,
+      "Livro",
+    );
 
-    const e = listarEstante(db, u.id)[0];
+    await adicionarEstante(
+      db,
+      u.id,
+      l.id,
+      "lendo",
+    );
 
-    await removerEstante(db, e.id);
+    const lista = await listarEstante(
+      db,
+      u.id,
+    );
 
-    expect(listarEstante(db, u.id)).toHaveLength(0);
+    const e = lista.find(
+      (item) =>
+        item.livro_id === l.id,
+    );
+
+    expect(e).toBeTruthy();
+
+    await removerEstante(
+      db,
+      e!.id,
+      u.id,
+    );
+
+    const depois = await listarEstante(
+      db,
+      u.id,
+    );
+
+    expect(
+      depois.some(
+        (item) =>
+          item.id === e!.id,
+      ),
+    ).toBe(false);
   });
 
   test("Retorno contém dados corretos", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Gustavo", "123");
-    const l = await criarLivro(db, "IA");
+    const nome = `Gustavo-${crypto.randomUUID()}`;
 
-    await adicionarEstante(db, u.id, l.id, "Lendo");
+    const u = await criarUsuario(
+      db,
+      nome,
+      "Senha123",
+    );
 
-    const e = listarEstante(db, u.id)[0];
+    const l = await criarLivro(
+      db,
+      "IA",
+    );
 
-    expect(e.usuario).toBe("Gustavo");
-    expect(e.livro).toBe("IA");
+    await adicionarEstante(
+      db,
+      u.id,
+      l.id,
+      "lendo",
+    );
+
+    const lista = await listarEstante(
+      db,
+      u.id,
+    );
+
+    const e = lista.find(
+      (item) =>
+        item.livro_id === l.id,
+    );
+
+    expect(e).toBeTruthy();
+    expect(e?.usuario?.nome).toBe(nome);
+    expect(e?.livro?.titulo).toBe("IA");
   });
-
 });

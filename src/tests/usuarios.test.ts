@@ -1,5 +1,7 @@
 import { describe, test, expect } from "bun:test";
+
 import { createTestDb } from "../db/test-db";
+
 import {
   criarUsuario,
   listarUsuarios,
@@ -8,67 +10,140 @@ import {
   deletarUsuario,
 } from "../services/usuarios";
 
-describe("Usuarios CRUD - profissional realista", () => {
-
+describe("Usuarios CRUD - PostgreSQL", () => {
   test("Cria usuário com nome real", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Carlos Silva", "123");
+    const u = await criarUsuario(
+      db,
+      `Carlos Silva ${crypto.randomUUID()}`,
+      "Senha123",
+    );
 
-    expect(u.nome).toBe("Carlos Silva");
+    expect(u.nome).toContain("Carlos Silva");
     expect(u.id).toBeTruthy();
   });
 
   test("Lista usuários com nomes reais", async () => {
     const db = createTestDb();
 
-    await criarUsuario(db, "Ana Paula", "123");
-    await criarUsuario(db, "João Mendes", "456");
+    const nome1 = `Ana Paula ${crypto.randomUUID()}`;
+    const nome2 = `João Mendes ${crypto.randomUUID()}`;
 
-    const lista = listarUsuarios(db);
+    const u1 = await criarUsuario(
+      db,
+      nome1,
+      "Senha123",
+    );
 
-    expect(lista).toHaveLength(2);
+    const u2 = await criarUsuario(
+      db,
+      nome2,
+      "Senha456",
+    );
+
+    const lista = await listarUsuarios(db);
+
+    expect(
+      lista.some(
+        (usuario) => usuario.id === u1.id,
+      ),
+    ).toBe(true);
+
+    expect(
+      lista.some(
+        (usuario) => usuario.id === u2.id,
+      ),
+    ).toBe(true);
   });
 
   test("Busca usuário pelo id", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Mariana Costa", "789");
+    const nome = `Mariana Costa ${crypto.randomUUID()}`;
 
-    const found = buscarUsuario(db, u.id);
+    const u = await criarUsuario(
+      db,
+      nome,
+      "Senha789",
+    );
 
-    expect(found?.nome).toBe("Mariana Costa");
+    const found = await buscarUsuario(
+      db,
+      u.id,
+    );
+
+    expect(found?.nome).toBe(nome);
   });
 
   test("Atualiza nome do usuário", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Pedro Santos", "111");
+    const nome = `Pedro Santos ${crypto.randomUUID()}`;
+    const novoNome = `Pedro Henrique Santos ${crypto.randomUUID()}`;
 
-    await atualizarUsuario(db, u.id, "Pedro Henrique Santos");
+    const u = await criarUsuario(
+      db,
+      nome,
+      "Senha111",
+    );
 
-    const updated = buscarUsuario(db, u.id);
+    await atualizarUsuario(
+      db,
+      u.id,
+      novoNome,
+    );
 
-    expect(updated?.nome).toBe("Pedro Henrique Santos");
+    const updated = await buscarUsuario(
+      db,
+      u.id,
+    );
+
+    expect(updated?.nome).toBe(novoNome);
   });
 
   test("Remove usuário corretamente", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Fernanda Lima", "222");
+    const nome = `Fernanda Lima ${crypto.randomUUID()}`;
 
-    await deletarUsuario(db, u.id);
+    const u = await criarUsuario(
+      db,
+      nome,
+      "Senha222",
+    );
 
-    const lista = listarUsuarios(db);
+    await deletarUsuario(
+      db,
+      u.id,
+    );
 
-    expect(lista.find(x => x.id === u.id)).toBeFalsy();
+    const lista = await listarUsuarios(db);
+
+    expect(
+      lista.some(
+        (usuario) => usuario.id === u.id,
+      ),
+    ).toBe(false);
   });
 
-  test("IDs são únicos mesmo com nomes iguais", async () => {
+  test("IDs são únicos para usuários diferentes", async () => {
     const db = createTestDb();
 
-    const u1 = await criarUsuario(db, "Lucas Rocha", "123");
-    const u2 = await criarUsuario(db, "Lucas Rocha", "123");
+    const nome1 = `Usuario Um ${crypto.randomUUID()}`;
+    const nome2 = `Usuario Dois ${crypto.randomUUID()}`;
+
+    const u1 = await criarUsuario(
+      db,
+      nome1,
+      "Senha123",
+    );
+
+    const u2 = await criarUsuario(
+      db,
+      nome2,
+      "Senha123",
+    );
 
     expect(u1.id).not.toBe(u2.id);
   });
@@ -76,37 +151,54 @@ describe("Usuarios CRUD - profissional realista", () => {
   test("Nome não pode ser vazio", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Beatriz Alves", "333");
+    const nome = `Usuario Valido ${crypto.randomUUID()}`;
+
+    const u = await criarUsuario(
+      db,
+      nome,
+      "Senha123",
+    );
 
     expect(u.nome.length).toBeGreaterThan(0);
   });
 
-  test("Lista retorna array válido", () => {
+  test("Lista retorna array válido", async () => {
     const db = createTestDb();
 
-    expect(Array.isArray(listarUsuarios(db))).toBeTruthy();
+    const lista = await listarUsuarios(db);
+
+    expect(Array.isArray(lista)).toBe(true);
   });
 
   test("Usuário criado existe na lista", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Ricardo Gomes", "444");
+    const nome = `Ricardo Gomes ${crypto.randomUUID()}`;
 
-    const lista = listarUsuarios(db);
-
-    expect(lista).toContainEqual(
-      expect.objectContaining({
-        nome: "Ricardo Gomes",
-      })
+    const u = await criarUsuario(
+      db,
+      nome,
+      "Senha123",
     );
+
+    const lista = await listarUsuarios(db);
+
+    expect(
+      lista.some(
+        (usuario) => usuario.id === u.id,
+      ),
+    ).toBe(true);
   });
 
   test("Senha não é exposta no retorno", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Patrícia Souza", "555");
+    const u = await criarUsuario(
+      db,
+      `Patricia Souza ${crypto.randomUUID()}`,
+      "Senha555",
+    );
 
     expect(u).not.toHaveProperty("senha");
   });
-
 });

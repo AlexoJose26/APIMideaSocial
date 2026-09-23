@@ -1,7 +1,8 @@
 import { beforeEach } from "bun:test";
+
 import { createTestDb } from "../db/test-db";
 
-let testDb: any;
+let testDb: ReturnType<typeof createTestDb>;
 
 beforeEach(() => {
   testDb = createTestDb();

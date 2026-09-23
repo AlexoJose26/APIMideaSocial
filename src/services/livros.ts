@@ -1,40 +1,112 @@
+import { desc, eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+
+import type { AppDb } from "../db";
 import { livros } from "../db/schema";
-import { eq } from "drizzle-orm";
-import { randomUUID } from "crypto";
-import type { DB } from "../db/types/db";
 
-export async function criarLivro(db: DB, titulo: string, autor?: string) {
-  if (!titulo) return { error: "Título obrigatório" };
+export async function criarLivro(
+  dbInstance: AppDb,
+  titulo: string,
+  autor?: string,
+) {
+  if (!titulo.trim()) {
+    throw new Error("Título obrigatório.");
+  }
 
-  const id = randomUUID();
+  const [novoLivro] = await dbInstance
+    .insert(livros)
+    .values({
+      id: randomUUID(),
+      titulo: titulo.trim(),
+      autor: autor?.trim() || null,
+      createdAt: new Date(),
+    })
+    .returning();
 
-  await db.insert(livros).values({
-    id,
-    titulo,
-    autor: autor || null,
-  });
+  if (!novoLivro) {
+    throw new Error("Não foi possível criar o livro.");
+  }
 
-  return { id, titulo };
+  return novoLivro;
 }
 
-export function listarLivros(db: DB) {
-  return db.select().from(livros).all() || [];
+export async function listarLivros(
+  dbInstance: AppDb,
+) {
+  return await dbInstance
+    .select()
+    .from(livros)
+    .orderBy(desc(livros.createdAt));
 }
 
-export function buscarLivro(db: DB, id: string) {
-  if (!id) return null;
+export async function buscarLivro(
+  dbInstance: AppDb,
+  id: string,
+) {
+  if (!id) {
+    return null;
+  }
 
-  return db.select().from(livros).where(eq(livros.id, id)).get() || null;
+  const [livro] = await dbInstance
+    .select()
+    .from(livros)
+    .where(eq(livros.id, id))
+    .limit(1);
+
+  return livro ?? null;
 }
 
-export async function atualizarLivro(db: DB, id: string, titulo: string) {
-  if (!id || !titulo) return { error: "Dados inválidos" };
+export async function atualizarLivro(
+  dbInstance: AppDb,
+  id: string,
+  titulo: string,
+) {
+  if (!id || !titulo.trim()) {
+    throw new Error("Dados inválidos.");
+  }
 
-  return db.update(livros).set({ titulo }).where(eq(livros.id, id)).run();
+  const [livro] = await dbInstance
+    .update(livros)
+    .set({
+      titulo: titulo.trim(),
+    })
+    .where(eq(livros.id, id))
+    .returning();
+
+  if (!livro) {
+    throw new Error("Livro não encontrado.");
+  }
+
+  return livro;
 }
 
-export async function deletarLivro(db: DB, id: string) {
-  if (!id) return { error: "ID inválido" };
+export async function deletarLivro(
+  dbInstance: AppDb,
+  id: string,
+) {
+  if (!id) {
+    throw new Error("ID inválido.");
+  }
 
-  return db.delete(livros).where(eq(livros.id, id)).run();
+  const resultado = await dbInstance
+    .delete(livros)
+    .where(eq(livros.id, id))
+    .returning({
+      id: livros.id,
+    });
+
+  if (resultado.length === 0) {
+    throw new Error("Livro não encontrado.");
+  }
+
+  const livro = resultado[0];
+
+  if (!livro) {
+    throw new Error("Livro não encontrado.");
+  }
+
+  return {
+    success: true,
+    id: livro.id,
+  };
 }

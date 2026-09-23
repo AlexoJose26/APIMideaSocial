@@ -1,100 +1,203 @@
-import { criticas, usuarios, livros } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { randomUUID } from "crypto";
-import type { DB } from "../db/types/db";
+import { randomUUID } from "node:crypto";
 
-
-function num(v: any) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function str(v: any) {
-  return v ? String(v) : "";
-}
+import type { AppDb } from "../db";
+import {
+  criticas,
+  usuarios,
+  livros,
+} from "../db/schema";
 
 export async function criarCritica(
-  db: DB,
+  dbInstance: AppDb,
   usuario_id: string,
   livro_id: string,
   texto: string,
-  nota: number
+  nota: number,
 ) {
+  if (
+    !usuario_id ||
+    !livro_id ||
+    !texto.trim()
+  ) {
+    throw new Error("Dados inválidos.");
+  }
+
+  const notaNumerica = Number(nota);
+
+  if (
+    !Number.isFinite(notaNumerica) ||
+    notaNumerica < 0 ||
+    notaNumerica > 5
+  ) {
+    throw new Error("A nota deve estar entre 0 e 5.");
+  }
+
   const id = randomUUID();
 
-  await db.insert(criticas).values({
-    id,
-    usuario_id: String(usuario_id),
-    livro_id: String(livro_id),
-    texto: String(texto),
-    nota: Number(nota ?? 0),
-    createdAt: new Date().toISOString(),
-  }).run();
+  const [novaCritica] = await dbInstance
+    .insert(criticas)
+    .values({
+      id,
+      usuario_id,
+      livro_id,
+      texto: texto.trim(),
+      nota: notaNumerica,
+      createdAt: new Date(),
+    })
+    .returning();
 
-  const critica = await db
+  if (!novaCritica) {
+    throw new Error("Não foi possível criar a crítica.");
+  }
+
+  const [critica] = await dbInstance
     .select({
       id: criticas.id,
+      usuario_id: criticas.usuario_id,
+      livro_id: criticas.livro_id,
       texto: criticas.texto,
       nota: criticas.nota,
       createdAt: criticas.createdAt,
-      usuario: usuarios.nome,
-      livro: livros.titulo,
+      usuario: {
+        id: usuarios.id,
+        nome: usuarios.nome,
+        foto_perfil: usuarios.foto_perfil,
+      },
+      livro: {
+        id: livros.id,
+        titulo: livros.titulo,
+        autor: livros.autor,
+      },
     })
     .from(criticas)
-    .leftJoin(usuarios, eq(criticas.usuario_id, usuarios.id))
-    .leftJoin(livros, eq(criticas.livro_id, livros.id))
-    .where(eq(criticas.id, id))
-    .get();
+    .leftJoin(
+      usuarios,
+      eq(criticas.usuario_id, usuarios.id),
+    )
+    .leftJoin(
+      livros,
+      eq(criticas.livro_id, livros.id),
+    )
+    .where(eq(criticas.id, novaCritica.id))
+    .limit(1);
 
-
-  return {
-    id: critica!.id,
-    texto: critica!.texto,
-    nota: Number(critica!.nota),
-    createdAt: critica!.createdAt,
-    usuario: critica!.usuario,
-    livro: critica!.livro,
-  };
+  return critica ?? novaCritica;
 }
-export function listarCriticas(db: DB, livro_id?: string) {
-  const query = db
+
+export async function listarCriticas(
+  dbInstance: AppDb,
+  livro_id?: string,
+) {
+  const query = dbInstance
     .select({
       id: criticas.id,
+      usuario_id: criticas.usuario_id,
+      livro_id: criticas.livro_id,
       texto: criticas.texto,
       nota: criticas.nota,
       createdAt: criticas.createdAt,
-      usuario: usuarios.nome,
-      livro: livros.titulo,
+      usuario: {
+        id: usuarios.id,
+        nome: usuarios.nome,
+        foto_perfil: usuarios.foto_perfil,
+      },
+      livro: {
+        id: livros.id,
+        titulo: livros.titulo,
+        autor: livros.autor,
+      },
     })
     .from(criticas)
-    .leftJoin(usuarios, eq(criticas.usuario_id, usuarios.id))
-    .leftJoin(livros, eq(criticas.livro_id, livros.id));
+    .leftJoin(
+      usuarios,
+      eq(criticas.usuario_id, usuarios.id),
+    )
+    .leftJoin(
+      livros,
+      eq(criticas.livro_id, livros.id),
+    );
 
-  return livro_id
-    ? query.where(eq(criticas.livro_id, livro_id)).all()
-    : query.all();
+  if (livro_id) {
+    return await query.where(
+      eq(criticas.livro_id, livro_id),
+    );
+  }
+
+  return await query;
 }
 
 export async function atualizarCritica(
-  db: DB,
+  dbInstance: AppDb,
   id: string,
   texto: string,
-  nota?: number
+  nota?: number,
 ) {
-  await db
-    .update(criticas)
-    .set({
-      texto: str(texto),
-      nota: num(nota),
-    })
-    .where(eq(criticas.id, id))
-    .run();
+  if (!id || !texto.trim()) {
+    throw new Error("Dados inválidos.");
+  }
 
-  return { id, texto, nota };
+  const dados: {
+    texto: string;
+    nota?: number;
+  } = {
+    texto: texto.trim(),
+  };
+
+  if (nota !== undefined) {
+    const notaNumerica = Number(nota);
+
+    if (
+      !Number.isFinite(notaNumerica) ||
+      notaNumerica < 0 ||
+      notaNumerica > 5
+    ) {
+      throw new Error("A nota deve estar entre 0 e 5.");
+    }
+
+    dados.nota = notaNumerica;
+  }
+
+  const [atualizada] = await dbInstance
+    .update(criticas)
+    .set(dados)
+    .where(eq(criticas.id, id))
+    .returning();
+
+  if (!atualizada) {
+    throw new Error("Crítica não encontrada.");
+  }
+
+  return atualizada;
 }
 
+export async function deletarCritica(
+  dbInstance: AppDb,
+  id: string,
+) {
+  if (!id) {
+    throw new Error("ID inválido.");
+  }
 
-export async function deletarCritica(db: DB, id: string) {
-  await db.delete(criticas).where(eq(criticas.id, id)).run();
-  return { success: true };
+  const resultado = await dbInstance
+    .delete(criticas)
+    .where(eq(criticas.id, id))
+    .returning({
+      id: criticas.id,
+    });
+
+  if (resultado.length === 0) {
+    throw new Error("Crítica não encontrada.");
+  }
+
+  const critica = resultado[0];
+
+  if (!critica) {
+    throw new Error("Crítica não encontrada.");
+  }
+
+  return {
+    success: true,
+    id: critica.id,
+  };
 }

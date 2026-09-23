@@ -1,41 +1,189 @@
-import { usuarios } from "../db/schema";
-import { eq } from "drizzle-orm";
-import { randomUUID } from "crypto";
-import type { DB } from "../db/types/db";
+import bcrypt from "bcryptjs";
+import { desc, eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 
-export async function criarUsuario(db: DB, nome: string, senha: string) {
-  if (!nome || !senha) {
-    return { error: "Nome e senha obrigatórios" };
+import type { AppDb } from "../db";
+import { usuarios } from "../db/schema";
+
+export async function criarUsuario(
+  dbInstance: AppDb,
+  nome: string,
+  senha: string,
+) {
+  const nomeLimpo = nome.trim();
+
+  if (!nomeLimpo || !senha) {
+    throw new Error(
+      "Nome e senha são obrigatórios.",
+    );
   }
 
-  const id = randomUUID();
+  if (senha.length < 6) {
+    throw new Error(
+      "A senha deve ter pelo menos 6 caracteres.",
+    );
+  }
 
-  await db.insert(usuarios).values({
-    id,
-    nome,
+  const [existente] = await dbInstance
+    .select({
+      id: usuarios.id,
+    })
+    .from(usuarios)
+    .where(eq(usuarios.nome, nomeLimpo))
+    .limit(1);
+
+  if (existente) {
+    throw new Error(
+      "Já existe um utilizador com esse nome.",
+    );
+  }
+
+  const senhaHash = await bcrypt.hash(
     senha,
-  });
+    12,
+  );
 
-  return { id, nome };
+  const [novoUsuario] = await dbInstance
+    .insert(usuarios)
+    .values({
+      id: randomUUID(),
+      nome: nomeLimpo,
+      senha: senhaHash,
+      createdAt: new Date(),
+    })
+    .returning({
+      id: usuarios.id,
+      nome: usuarios.nome,
+      foto_perfil: usuarios.foto_perfil,
+      createdAt: usuarios.createdAt,
+    });
+
+  if (!novoUsuario) {
+    throw new Error(
+      "Não foi possível criar o utilizador.",
+    );
+  }
+
+  return novoUsuario;
 }
 
-export function listarUsuarios(db: DB) {
-  return db.select().from(usuarios).all() || [];
+export async function listarUsuarios(
+  dbInstance: AppDb,
+) {
+  return await dbInstance
+    .select({
+      id: usuarios.id,
+      nome: usuarios.nome,
+      foto_perfil: usuarios.foto_perfil,
+      createdAt: usuarios.createdAt,
+    })
+    .from(usuarios)
+    .orderBy(desc(usuarios.createdAt));
 }
 
-export function buscarUsuario(db: DB, id: string) {
-  if (!id) return null;
-  return db.select().from(usuarios).where(eq(usuarios.id, id)).get() || null;
+export async function buscarUsuario(
+  dbInstance: AppDb,
+  id: string,
+) {
+  if (!id) {
+    return null;
+  }
+
+  const [usuario] = await dbInstance
+    .select({
+      id: usuarios.id,
+      nome: usuarios.nome,
+      foto_perfil: usuarios.foto_perfil,
+      createdAt: usuarios.createdAt,
+    })
+    .from(usuarios)
+    .where(eq(usuarios.id, id))
+    .limit(1);
+
+  return usuario ?? null;
 }
 
-export async function atualizarUsuario(db: DB, id: string, nome: string) {
-  if (!id || !nome) return { error: "Dados inválidos" };
+export async function atualizarUsuario(
+  dbInstance: AppDb,
+  id: string,
+  nome: string,
+) {
+  const nomeLimpo = nome.trim();
 
-  return db.update(usuarios).set({ nome }).where(eq(usuarios.id, id)).run();
+  if (!id || !nomeLimpo) {
+    throw new Error("Dados inválidos.");
+  }
+
+  const [outroUsuario] = await dbInstance
+    .select({
+      id: usuarios.id,
+    })
+    .from(usuarios)
+    .where(eq(usuarios.nome, nomeLimpo))
+    .limit(1);
+
+  if (
+    outroUsuario &&
+    outroUsuario.id !== id
+  ) {
+    throw new Error(
+      "Esse nome de utilizador já está em uso.",
+    );
+  }
+
+  const [usuario] = await dbInstance
+    .update(usuarios)
+    .set({
+      nome: nomeLimpo,
+    })
+    .where(eq(usuarios.id, id))
+    .returning({
+      id: usuarios.id,
+      nome: usuarios.nome,
+      foto_perfil: usuarios.foto_perfil,
+      createdAt: usuarios.createdAt,
+    });
+
+  if (!usuario) {
+    throw new Error(
+      "Utilizador não encontrado.",
+    );
+  }
+
+  return usuario;
 }
 
-export async function deletarUsuario(db: DB, id: string) {
-  if (!id) return { error: "ID inválido" };
+export async function deletarUsuario(
+  dbInstance: AppDb,
+  id: string,
+) {
+  if (!id) {
+    throw new Error("ID inválido.");
+  }
 
-  return db.delete(usuarios).where(eq(usuarios.id, id)).run();
+  const resultado = await dbInstance
+    .delete(usuarios)
+    .where(eq(usuarios.id, id))
+    .returning({
+      id: usuarios.id,
+    });
+
+  if (resultado.length === 0) {
+    throw new Error(
+      "Utilizador não encontrado.",
+    );
+  }
+
+  const usuario = resultado[0];
+
+  if (!usuario) {
+    throw new Error(
+      "Utilizador não encontrado.",
+    );
+  }
+
+  return {
+    success: true,
+    id: usuario.id,
+  };
 }

@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 
+import { authRoutes } from "./routes/auth";
 import { usuariosRoutes } from "./routes/usuarios.routes";
 import { livrosRoutes } from "./routes/livros.routes";
 import { criticasRoutes } from "./routes/criticas.routes";
@@ -8,7 +9,6 @@ import { estantesRoutes } from "./routes/estantes.routes";
 import { feedRoutes } from "./routes/feed.routes";
 import { likesRoutes } from "./routes/likes.routes";
 import { comentariosRoutes } from "./routes/comentarios.routes";
-import { authRoutes } from "./routes/auth";
 
 export function createApp() {
   const app = new Elysia()
@@ -19,37 +19,21 @@ export function createApp() {
       }),
     )
 
-    .group("/auth", (app) =>
-      authRoutes(app),
-    )
+    .use(authRoutes)
 
-    .group("/usuarios", (app) =>
-      usuariosRoutes(app),
-    )
+    .use(usuariosRoutes)
 
-    .group("/livros", (app) =>
-      livrosRoutes(app),
-    )
+    .use(livrosRoutes)
 
-    .group("/criticas", (app) =>
-      criticasRoutes(app),
-    )
+    .use(criticasRoutes)
 
-    .group("/estantes", (app) =>
-      estantesRoutes(app),
-    )
+    .use(estantesRoutes)
 
-    .group("/feed", (app) =>
-      feedRoutes(app),
-    )
+    .use(feedRoutes)
 
-    .group("/likes", (app) =>
-      likesRoutes(app),
-    )
+    .use(likesRoutes)
 
-    .group("/comentarios", (app) =>
-      comentariosRoutes(app),
-    )
+    .use(comentariosRoutes)
 
     .get("/health", () => ({
       status: "ok",

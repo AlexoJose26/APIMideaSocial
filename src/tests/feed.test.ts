@@ -1,79 +1,192 @@
 import { describe, test, expect } from "bun:test";
+
 import { createTestDb } from "../db/test-db";
-import { criarPost, listarFeed } from "../services/feed";
+
+import {
+  criarPost,
+  listarFeed,
+} from "../services/feed";
+
 import { criarUsuario } from "../services/usuarios";
 
-describe("Feed - profissional", () => {
-
+describe("Feed - PostgreSQL", () => {
   test("Cria post", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Adilson", "123");
+    const u = await criarUsuario(
+      db,
+      `Adilson-${crypto.randomUUID()}`,
+      "Senha123",
+    );
 
-    await criarPost(db, u.id, "LOGIN");
+    await criarPost(
+      db,
+      u.id,
+      "LOGIN",
+    );
 
-    expect(listarFeed(db)).toHaveLength(1);
+    const lista = await listarFeed(db);
+
+    expect(
+      lista.some(
+        (post) =>
+          post.usuario_id === u.id &&
+          post.tipo === "LOGIN",
+      ),
+    ).toBe(true);
   });
 
   test("Contém post criado", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "David", "123");
+    const nome = `David-${crypto.randomUUID()}`;
 
-    await criarPost(db, u.id, "LOGIN");
+    const u = await criarUsuario(
+      db,
+      nome,
+      "Senha123",
+    );
 
-    expect(listarFeed(db)).toContainEqual(
+    await criarPost(
+      db,
+      u.id,
+      "LOGIN",
+    );
+
+    const lista = await listarFeed(db);
+
+    const post = lista.find(
+      (item) =>
+        item.usuario_id === u.id,
+    );
+
+    expect(post).toBeTruthy();
+
+    expect(post).toEqual(
       expect.objectContaining({
         tipo: "LOGIN",
-        usuario: "David",
-      })
+      }),
     );
+
+    expect(post?.usuario?.nome).toBe(nome);
   });
 
   test("Usuário correto", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Jorge", "123");
+    const nome = `Jorge-${crypto.randomUUID()}`;
 
-    await criarPost(db, u.id, "LOGIN");
+    const u = await criarUsuario(
+      db,
+      nome,
+      "Senha123",
+    );
 
-    expect(listarFeed(db)[0].usuario).toBe("Jorge");
+    await criarPost(
+      db,
+      u.id,
+      "LOGIN",
+    );
+
+    const lista = await listarFeed(db);
+
+    const post = lista.find(
+      (item) =>
+        item.usuario_id === u.id,
+    );
+
+    expect(post?.usuario?.nome).toBe(nome);
   });
 
-  test("Array válido", () => {
+  test("Array válido", async () => {
     const db = createTestDb();
-    expect(Array.isArray(listarFeed(db))).toBeTruthy();
+
+    const lista = await listarFeed(db);
+
+    expect(Array.isArray(lista)).toBe(true);
   });
 
   test("Múltiplos posts", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Dário", "123");
+    const u = await criarUsuario(
+      db,
+      `Dario-${crypto.randomUUID()}`,
+      "Senha123",
+    );
 
-    await criarPost(db, u.id, "LOGIN");
-    await criarPost(db, u.id, "POST");
+    await criarPost(
+      db,
+      u.id,
+      "LOGIN",
+    );
 
-    expect(listarFeed(db)).toHaveLength(2);
+    await criarPost(
+      db,
+      u.id,
+      "POST",
+    );
+
+    const lista = await listarFeed(db);
+
+    const postsDoUsuario = lista.filter(
+      (post) =>
+        post.usuario_id === u.id,
+    );
+
+    expect(postsDoUsuario.length).toBe(2);
   });
 
   test("Tipo não vazio", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Tiago", "123");
+    const u = await criarUsuario(
+      db,
+      `Tiago-${crypto.randomUUID()}`,
+      "Senha123",
+    );
 
-    await criarPost(db, u.id, "LOGIN");
+    await criarPost(
+      db,
+      u.id,
+      "LOGIN",
+    );
 
-    expect(listarFeed(db)[0].tipo).toBeTruthy();
+    const lista = await listarFeed(db);
+
+    const post = lista.find(
+      (item) =>
+        item.usuario_id === u.id,
+    );
+
+    expect(post?.tipo).toBeTruthy();
   });
 
-  test("Usuario é string", async () => {
+  test("Usuário contém dados do utilizador", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Diogo", "123");
+    const nome = `Diogo-${crypto.randomUUID()}`;
 
-    await criarPost(db, u.id, "LOGIN");
+    const u = await criarUsuario(
+      db,
+      nome,
+      "Senha123",
+    );
 
-    expect(typeof listarFeed(db)[0].usuario).toBe("string");
+    await criarPost(
+      db,
+      u.id,
+      "LOGIN",
+    );
+
+    const lista = await listarFeed(db);
+
+    const post = lista.find(
+      (item) =>
+        item.usuario_id === u.id,
+    );
+
+    expect(post?.usuario).toBeTruthy();
+    expect(post?.usuario?.nome).toBe(nome);
   });
-
 });

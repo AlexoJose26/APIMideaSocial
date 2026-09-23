@@ -1,134 +1,348 @@
 import { describe, test, expect } from "bun:test";
+
 import { createTestDb } from "../db/test-db";
+
 import {
   criarCritica,
   listarCriticas,
   atualizarCritica,
   deletarCritica,
 } from "../services/criticas";
+
 import { criarUsuario } from "../services/usuarios";
 import { criarLivro } from "../services/livros";
 
-describe("Criticas CRUD - profissional", () => {
-
+describe("Criticas CRUD - PostgreSQL", () => {
   test("Cria crítica com sucesso", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Adilson", "123");
-    const l = await criarLivro(db, "O Poder do Hábito");
+    const nome = `Adilson-${crypto.randomUUID()}`;
 
-    await criarCritica(db, u.id, l.id, "Bom livro", 5);
+    const u = await criarUsuario(
+      db,
+      nome,
+      "Senha123",
+    );
 
-    expect(listarCriticas(db)).toHaveLength(1);
+    const l = await criarLivro(
+      db,
+      "O Poder do Hábito",
+    );
+
+    await criarCritica(
+      db,
+      u.id,
+      l.id,
+      "Bom livro",
+      5,
+    );
+
+    const lista = await listarCriticas(db);
+
+    expect(
+      lista.some(
+        (critica) =>
+          critica.usuario_id === u.id &&
+          critica.livro_id === l.id &&
+          critica.texto === "Bom livro",
+      ),
+    ).toBe(true);
   });
 
   test("Crítica tem dados corretos", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "David", "1234");
-    const l = await criarLivro(db, "Pai Rico");
+    const nome = `David-${crypto.randomUUID()}`;
 
-    await criarCritica(db, u.id, l.id, "Excelente", 4);
+    const u = await criarUsuario(
+      db,
+      nome,
+      "Senha123",
+    );
 
-    const c = listarCriticas(db)[0];
+    const l = await criarLivro(
+      db,
+      "Pai Rico",
+    );
+
+    await criarCritica(
+      db,
+      u.id,
+      l.id,
+      "Excelente",
+      4,
+    );
+
+    const lista = await listarCriticas(db);
+
+    const c = lista.find(
+      (critica) =>
+        critica.usuario_id === u.id &&
+        critica.livro_id === l.id,
+    );
+
+    expect(c).toBeTruthy();
 
     expect(c).toEqual(
       expect.objectContaining({
         texto: "Excelente",
         nota: 4,
-        usuario: "David",
-        livro: "Pai Rico",
-      })
+      }),
     );
+
+    expect(c?.usuario?.nome).toBe(nome);
+    expect(c?.livro?.titulo).toBe("Pai Rico");
   });
 
-  test("Lista críticas retorna array", () => {
+  test("Lista críticas retorna array", async () => {
     const db = createTestDb();
-    expect(Array.isArray(listarCriticas(db))).toBeTruthy();
+
+    const lista = await listarCriticas(db);
+
+    expect(Array.isArray(lista)).toBe(true);
   });
 
   test("Crítica existe após criação", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Jorge", "1235");
-    const l = await criarLivro(db, "O amor");
+    const nome = `Jorge-${crypto.randomUUID()}`;
 
-    await criarCritica(db, u.id, l.id, "Top", 5);
-
-    const list = listarCriticas(db);
-
-    expect(list).toContainEqual(
-      expect.objectContaining({ texto: "Top" })
+    const u = await criarUsuario(
+      db,
+      nome,
+      "Senha123",
     );
+
+    const l = await criarLivro(
+      db,
+      "O amor",
+    );
+
+    await criarCritica(
+      db,
+      u.id,
+      l.id,
+      "Top",
+      5,
+    );
+
+    const lista = await listarCriticas(db);
+
+    expect(
+      lista.some(
+        (critica) =>
+          critica.usuario_id === u.id &&
+          critica.texto === "Top",
+      ),
+    ).toBe(true);
   });
 
   test("Nota válida", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Dário", "1111");
-    const l = await criarLivro(db, "A Guerra");
+    const nome = `Dario-${crypto.randomUUID()}`;
 
-    await criarCritica(db, u.id, l.id, "OK", 3);
+    const u = await criarUsuario(
+      db,
+      nome,
+      "Senha111",
+    );
 
-    const nota = listarCriticas(db)[0].nota;
+    const l = await criarLivro(
+      db,
+      "A Guerra",
+    );
 
-    expect(nota).toBeGreaterThan(0);
-    expect(nota).toBeLessThanOrEqual(5);
+    await criarCritica(
+      db,
+      u.id,
+      l.id,
+      "OK",
+      3,
+    );
+
+    const lista = await listarCriticas(db);
+
+    const c = lista.find(
+      (critica) =>
+        critica.usuario_id === u.id &&
+        critica.livro_id === l.id,
+    );
+
+    expect(c).toBeTruthy();
+    expect(c!.nota).toBeGreaterThan(0);
+    expect(c!.nota).toBeLessThanOrEqual(5);
   });
 
   test("Atualiza crítica", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Simone", "3333");
-    const l = await criarLivro(db, "A Felicidade");
+    const nome = `Simone-${crypto.randomUUID()}`;
 
-    await criarCritica(db, u.id, l.id, "Antigo", 2);
+    const u = await criarUsuario(
+      db,
+      nome,
+      "Senha333",
+    );
 
-    const c = listarCriticas(db)[0];
+    const l = await criarLivro(
+      db,
+      "A Felicidade",
+    );
 
-    await atualizarCritica(db, c.id, "Atualizado");
+    await criarCritica(
+      db,
+      u.id,
+      l.id,
+      "Antigo",
+      2,
+    );
 
-    expect(listarCriticas(db)[0].texto).toBe("Atualizado");
+    const listaAntes = await listarCriticas(db);
+
+    const c = listaAntes.find(
+      (critica) =>
+        critica.usuario_id === u.id &&
+        critica.livro_id === l.id,
+    );
+
+    expect(c).toBeTruthy();
+
+    await atualizarCritica(
+      db,
+      c!.id,
+      "Atualizado",
+    );
+
+    const listaDepois = await listarCriticas(db);
+
+    const atualizada = listaDepois.find(
+      (critica) => critica.id === c!.id,
+    );
+
+    expect(atualizada?.texto).toBe(
+      "Atualizado",
+    );
   });
 
   test("Remove crítica", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Diogo", "4444");
-    const l = await criarLivro(db, "Havemos de Voltar");
+    const nome = `Diogo-${crypto.randomUUID()}`;
 
-    await criarCritica(db, u.id, l.id, "Remover", 1);
+    const u = await criarUsuario(
+      db,
+      nome,
+      "Senha444",
+    );
 
-    const c = listarCriticas(db)[0];
+    const l = await criarLivro(
+      db,
+      "Havemos de Voltar",
+    );
 
-    await deletarCritica(db, c.id);
+    await criarCritica(
+      db,
+      u.id,
+      l.id,
+      "Remover",
+      1,
+    );
 
-    expect(listarCriticas(db)).toHaveLength(0);
+    const listaAntes = await listarCriticas(db);
+
+    const c = listaAntes.find(
+      (critica) =>
+        critica.usuario_id === u.id &&
+        critica.livro_id === l.id,
+    );
+
+    expect(c).toBeTruthy();
+
+    await deletarCritica(
+      db,
+      c!.id,
+    );
+
+    const listaDepois = await listarCriticas(db);
+
+    expect(
+      listaDepois.some(
+        (critica) => critica.id === c!.id,
+      ),
+    ).toBe(false);
   });
 
   test("Crítica não é nula", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Neto", "5555");
-    const l = await criarLivro(db, "O Turismo");
+    const nome = `Neto-${crypto.randomUUID()}`;
 
-    await criarCritica(db, u.id, l.id, "Teste", 4);
+    const u = await criarUsuario(
+      db,
+      nome,
+      "Senha555",
+    );
 
-    expect(listarCriticas(db)[0]).toBeTruthy();
+    const l = await criarLivro(
+      db,
+      "O Turismo",
+    );
+
+    await criarCritica(
+      db,
+      u.id,
+      l.id,
+      "Teste",
+      4,
+    );
+
+    const lista = await listarCriticas(db);
+
+    const c = lista.find(
+      (critica) =>
+        critica.usuario_id === u.id &&
+        critica.livro_id === l.id,
+    );
+
+    expect(c).toBeTruthy();
   });
 
   test("Retorno contém usuario e livro", async () => {
     const db = createTestDb();
 
-    const u = await criarUsuario(db, "Carlos", "999");
-    const l = await criarLivro(db, "Node.js");
+    const nome = `Carlos-${crypto.randomUUID()}`;
 
-    await criarCritica(db, u.id, l.id, "Muito bom", 5);
+    const u = await criarUsuario(
+      db,
+      nome,
+      "Senha999",
+    );
 
-    const c = listarCriticas(db)[0];
+    const l = await criarLivro(
+      db,
+      "Node.js",
+    );
 
-    expect(c.usuario).toBe("Carlos");
-    expect(c.livro).toBe("Node.js");
+    await criarCritica(
+      db,
+      u.id,
+      l.id,
+      "Muito bom",
+      5,
+    );
+
+    const lista = await listarCriticas(db);
+
+    const c = lista.find(
+      (critica) =>
+        critica.usuario_id === u.id &&
+        critica.livro_id === l.id,
+    );
+
+    expect(c).toBeTruthy();
+
+    expect(c?.usuario?.nome).toBe(nome);
+    expect(c?.livro?.titulo).toBe("Node.js");
   });
-
 });

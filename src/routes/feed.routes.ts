@@ -1,23 +1,56 @@
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 
-import { db } from "../db/index";
-import { criarPost, listarFeed } from "../services/feed";
+import { db } from "../db";
 
-export const feedRoutes = (app: Elysia) =>
-  app
+import {
+  criarPost,
+  listarFeed,
+} from "../services/feed";
 
-   
-    .get("/", async () => {
+export const feedRoutes = new Elysia({
+  prefix: "/feed",
+})
+  .get("/", async ({ set }) => {
+    try {
       return await listarFeed(db);
-    })
+    } catch (error) {
+      console.error("Erro ao listar feed:", error);
 
+      set.status = 500;
 
-    .post("/", async ({ body }) => {
-      const post = await criarPost(
-        db,
-        body.usuario_id,
-        body.tipo
-      );
+      return {
+        success: false,
+        message: "Não foi possível carregar o feed.",
+      };
+    }
+  })
 
-      return post;
-    });
+  .post(
+    "/",
+    async ({ body, set }) => {
+      try {
+        return await criarPost(
+          db,
+          body.usuario_id,
+          body.tipo,
+        );
+      } catch (error) {
+        console.error("Erro ao criar publicação:", error);
+
+        set.status = 500;
+
+        return {
+          success: false,
+          message: "Não foi possível criar a publicação.",
+        };
+      }
+    },
+    {
+      body: t.Object({
+        usuario_id: t.String(),
+        tipo: t.String({
+          minLength: 1,
+        }),
+      }),
+    },
+  );
