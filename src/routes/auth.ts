@@ -6,8 +6,10 @@ import { meRoute } from "./auth/me";
 import { registerRoute } from "./auth/register";
 
 export const authRoutes = (app: Elysia) =>
-app
-.use(registerRoute)
-.use(loginRoute)
-.use(logoutRoute)
-.use(meRoute);
+  app.group("/auth", (auth) =>
+    auth
+      .use(registerRoute)
+      .use(loginRoute)
+      .use(logoutRoute)
+      .use(meRoute),
+  );
