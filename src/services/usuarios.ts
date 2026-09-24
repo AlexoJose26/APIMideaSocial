@@ -107,6 +107,7 @@ export async function atualizarUsuario(
   dbInstance: AppDb,
   id: string,
   nome: string,
+  fotoPerfil?: string | null,
 ) {
   const nomeLimpo = nome.trim();
 
@@ -131,11 +132,21 @@ export async function atualizarUsuario(
     );
   }
 
+  const dadosAtualizacao: {
+    nome: string;
+    foto_perfil?: string | null;
+  } = {
+    nome: nomeLimpo,
+  };
+
+  if (fotoPerfil !== undefined) {
+    dadosAtualizacao.foto_perfil =
+      fotoPerfil;
+  }
+
   const [usuario] = await dbInstance
     .update(usuarios)
-    .set({
-      nome: nomeLimpo,
-    })
+    .set(dadosAtualizacao)
     .where(eq(usuarios.id, id))
     .returning({
       id: usuarios.id,
